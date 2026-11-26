@@ -10,10 +10,12 @@ import { presignGet } from "../../shared/r2.js";
 import { badRequest, forbidden, notFound, unprocessable } from "../../shared/errors.js";
 import { adminClient, toPoint } from "../../shared/supabase.js";
 import { requireAuth } from "../../shared/middleware/auth.js";
+import { optionalAuth } from "../../shared/middleware/optional-auth.js";
 
 export const reportRoutes = new Hono<AppEnv>();
 
-reportRoutes.use("*", requireAuth);
+// Hanya endpoint baca publik yang memakai optionalAuth; sisanya wajib login.
+reportRoutes.get("/:id", optionalAuth);
 
 const MERGE_THRESHOLD = 0.35;
 const MERGE_LIMIT = 5;
@@ -26,7 +28,7 @@ const MERGE_LIMIT = 5;
  * di UI. Bila AI lambat atau gagal, laporan tetap tersimpan dengan
  * kategori "other" — laporan warga tidak boleh gagal karena AI.
  */
-reportRoutes.post("/", async (c) => {
+reportRoutes.post("/", requireAuth, async (c) => {
   const user = c.get("user");
   const parsed = createReportSchema.safeParse(await c.req.json());
   if (!parsed.success) {
@@ -132,7 +134,7 @@ reportRoutes.post("/", async (c) => {
   );
 });
 
-reportRoutes.get("/", async (c) => {
+reportRoutes.get("/", requireAuth, async (c) => {
   const parsed = reportListQuerySchema.safeParse(c.req.query());
   if (!parsed.success) {
     throw badRequest("invalid_query", "Parameter filter tidak valid", parsed.error.issues);
@@ -178,13 +180,95 @@ reportRoutes.get("/", async (c) => {
     }),
   );
 
+  const { data: myVotes } = await admin
+    .from("report_votes")
+    .select("report_id")
+    .eq("profile_id", c.get("user").id)
+    .in("report_id", rows.map((row) => row.id));
+
+  const voted = new Set((myVotes ?? []).map((row) => row.report_id));
+
   return c.json({
-    items: rows.map((row) => ({ ...row, media: byReport.get(row.id) ?? [] })),
+    items: rows.map((row) => ({
+      ...row,
+      media: byReport.get(row.id) ?? [],
+      hasVoted: voted.has(row.id),
+    })),
+  });
+});
+
+/** Detail satu laporan: teks, media, dan status dukungan pemanggil. */
+reportRoutes.get("/:id", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const admin = adminClient(c.env);
+
+  const { data: report, error } = await admin
+    .from("reports")
+    .select(
+      "id, post_id, reporter_id, body_text, transcript, category, ai_category, ai_confidence, severity, status, upvote_count, captured_at, reject_reason, merged_into_id",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) raiseDbError(error);
+  if (!report) throw notFound("Laporan tidak ditemukan");
+
+  // Laporan orang lain hanya boleh dibaca bila sudah lolos validasi.
+  const isPublic = ["validated", "eligible", "taken_up", "merged"].includes(report.status);
+  const canSeeUnpublished =
+    user !== undefined &&
+    (report.reporter_id === user.id || user.role === "admin" || Boolean(user.organizationId));
+
+  if (!isPublic && !canSeeUnpublished) {
+    throw forbidden("Laporan ini belum tervalidasi");
+  }
+
+  const [{ data: media }, { data: vote }, { data: post }, { data: threshold }] = await Promise.all([
+    admin.from("report_media").select("r2_key, mime_type").eq("report_id", id),
+    user
+      ? admin
+          .from("report_votes")
+          .select("report_id")
+          .eq("report_id", id)
+          .eq("profile_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    admin
+      .from("public_posts")
+      .select("id, name, regency, radius_m")
+      .eq("id", report.post_id)
+      .maybeSingle(),
+    // Ambang dukungan disimpan di app_settings agar bisa dikalibrasi tanpa deploy.
+    admin.from("app_settings").select("value").eq("key", "upvote_threshold").maybeSingle(),
+  ]);
+
+  const files = await Promise.all(
+    (media ?? []).map(async (file) => ({
+      mimeType: file.mime_type,
+      url: await presignGet(c.env, file.r2_key),
+    })),
+  );
+
+  // `reporter_id` hanya dipakai untuk memutuskan akses; identitas pelapor
+  // tidak boleh keluar di respons publik (lihat view public_reports).
+  const { reporter_id: _reporterId, ...publicReport } = report;
+
+  const thresholdValue = threshold?.value;
+  const upvoteThreshold =
+    typeof thresholdValue === "number" ? thresholdValue : Number(thresholdValue ?? 5);
+
+  return c.json({
+    ...publicReport,
+    media: files,
+    hasVoted: Boolean(vote),
+    upvoteThreshold: Number.isFinite(upvoteThreshold) ? upvoteThreshold : 5,
+    post,
   });
 });
 
 /** Klasifikasi ulang manual (mis. setelah model diperbaiki). */
-reportRoutes.post("/:id/classify", async (c) => {
+reportRoutes.post("/:id/classify", requireAuth, async (c) => {
   const user = c.get("user");
   const admin = adminClient(c.env);
   const id = c.req.param("id");
@@ -230,7 +314,7 @@ reportRoutes.post("/:id/classify", async (c) => {
  * memberi verdict. Hanya organisasi terverifikasi/admin yang melihat ini
  * karena keputusan merge mengubah data laporan warga.
  */
-reportRoutes.get("/:id/merge-candidates", async (c) => {
+reportRoutes.get("/:id/merge-candidates", requireAuth, async (c) => {
   const user = c.get("user");
   if (user.role !== "admin" && !user.organizationId) {
     throw forbidden("Hanya admin atau organisasi terverifikasi");
@@ -280,7 +364,7 @@ reportRoutes.get("/:id/merge-candidates", async (c) => {
   return c.json({ items: judged });
 });
 
-reportRoutes.post("/:id/merge", async (c) => {
+reportRoutes.post("/:id/merge", requireAuth, async (c) => {
   const user = c.get("user");
   if (user.role !== "admin" && !user.organizationId) {
     throw forbidden("Hanya admin atau organisasi terverifikasi");
@@ -305,7 +389,7 @@ reportRoutes.post("/:id/merge", async (c) => {
   return c.json(data);
 });
 
-reportRoutes.post("/:id/votes", async (c) => {
+reportRoutes.post("/:id/votes", requireAuth, async (c) => {
   const user = c.get("user");
   const reportId = c.req.param("id");
   const admin = adminClient(c.env);
@@ -324,10 +408,10 @@ reportRoutes.post("/:id/votes", async (c) => {
     .maybeSingle();
 
   if (!data) throw notFound("Laporan tidak ditemukan");
-  return c.json(data);
+  return c.json({ ...data, hasVoted: true });
 });
 
-reportRoutes.delete("/:id/votes", async (c) => {
+reportRoutes.delete("/:id/votes", requireAuth, async (c) => {
   const user = c.get("user");
   const reportId = c.req.param("id");
   const admin = adminClient(c.env);
@@ -347,10 +431,10 @@ reportRoutes.delete("/:id/votes", async (c) => {
     .maybeSingle();
 
   if (!data) throw notFound("Laporan tidak ditemukan");
-  return c.json(data);
+  return c.json({ ...data, hasVoted: false });
 });
 
-reportRoutes.post("/:id/reject", async (c) => {
+reportRoutes.post("/:id/reject", requireAuth, async (c) => {
   const user = c.get("user");
   if (user.role !== "admin" && !user.organizationId) {
     throw forbidden("Hanya admin atau organisasi terverifikasi");

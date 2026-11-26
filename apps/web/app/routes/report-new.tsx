@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { NEED_CATEGORIES, NEED_CATEGORY_LABELS, SEVERITY_LEVELS } from "@jangkau/shared";
 
+import { RequireRole } from "~/features/auth/guards";
 import { AppShell } from "~/shared/layout/app-shell";
 import { apiFetch, ApiError } from "~/shared/api/client";
 import {
@@ -264,6 +265,7 @@ export default function ReportNew() {
 
   return (
     <AppShell>
+      <RequireRole allow={["resident", "organization", "admin"]}>
       <h1 className="text-2xl font-bold">Lapor kebutuhan pos</h1>
       <p className="mt-1 text-sm text-muted">
         Laporan disimpan di perangkat lebih dulu, jadi tetap aman saat sinyal hilang.
@@ -498,6 +500,7 @@ export default function ReportNew() {
           </ul>
         </section>
       )}
+      </RequireRole>
     </AppShell>
   );
 }
