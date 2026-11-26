@@ -1,0 +1,421 @@
+{
+    "wallTime": 376,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "e87a2f63-51df-404f-9a5a-a5dd01e60bdd"
+    },
+    "scriptName": "pages-worker--25030108-production",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [
+        {
+            "message": [
+                "<-- POST /api/v1/reports"
+            ],
+            "level": "log",
+            "timestamp": 1795668525813
+        },
+        {
+            "message": [
+                "unhandled",
+                "",
+                "Bad control character in string literal in JSON at position 51 (line 1 column 52)"
+            ],
+            "level": "error",
+            "timestamp": 1795668526185
+        },
+        {
+            "message": [
+                "--> POST /api/v1/reports \u001b[31m500\u001b[0m 372ms"
+            ],
+            "level": "log",
+            "timestamp": 1795668526185
+        }
+    ],
+    "eventTimestamp": 1795668525811,
+    "event": {
+        "request": {
+            "url": "https://jangkau-c5x.pages.dev/api/v1/reports",
+            "method": "POST",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "authorization": "REDACTED",
+                "cf-connecting-ip": "103.181.249.253",
+                "cf-ipcountry": "ID",
+                "cf-ray": "a606433e4fb3f7e6",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "253",
+                "content-type": "application/json",
+                "host": "jangkau-c5x.pages.dev",
+                "user-agent": "curl/8.22.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "103.181.249.253"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": [
+                    "Host",
+                    "User-Agent",
+                    "Accept",
+                    "authorization",
+                    "content-type",
+                    "Content-Length"
+                ],
+                "clientTcpRtt": 16,
+                "clientQuicRtt": 0,
+                "colo": "CGK",
+                "asn": 149400,
+                "asOrganization": "PT Cyber Akses Indonesia",
+                "country": "ID",
+                "isEUCountry": false,
+                "city": "Malang",
+                "continent": "AS",
+                "region": "East Java",
+                "regionCode": "JI",
+                "timezone": "Asia/Jakarta",
+                "longitude": "112.6304",
+                "latitude": "-7.9797",
+                "postalCode": "65117",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "CZA9/OWqXe0OvzhPWeA39VOMHFIUQm9+CeAS0zSquwQ=",
+                "tlsClientCiphersSha1": "kTkJ+HAwBvIuoPFncb1wEDLcgfg=",
+                "tlsClientExtensionsSha1": "p2XN7z/lcnmBD9Q+f8xSyG4x4VA=",
+                "tlsClientExtensionsSha1Le": "ydwLHTahJx17MvHnnvv2lsdgs/g=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "77a90cb85cccdb1592f57c368c0d6b5649d0181e3125095040e27103f890debb71dcff1a2a7a27806d81d6fa4b907722",
+                    "serverHandshake": "ecce19f9eca432a6fa967430b6e72657b784bb93ca4963199d3e4002d2f0ba03b8937c13548d8c9e45b8be8be30edd7e",
+                    "clientFinished": "25909560c45fd574ef4d6faa2a0867d88dedea986e90d0a756f119706f3e4b08d68201db907310c16432024b93913c56",
+                    "serverFinished": "afb687891b6064307b3aa4f140686e6a5590d02d97c84b286a7ac8c98f50587e011a06546c0db7819564f68dfd571d9e"
+                },
+                "tlsClientHelloLength": "459",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 267946
+                },
+                "pagesHostName": "jangkau-c5x.pages.dev",
+                "botManagement": {
+                    "corporateProxy": false,
+                    "verifiedBot": false,
+                    "jsDetection": {
+                        "passed": false
+                    },
+                    "staticResource": false,
+                    "detectionIds": {},
+                    "score": 99
+                }
+            }
+        },
+        "response": {
+            "status": 500
+        }
+    }
+}
+{
+    "wallTime": 40,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "e87a2f63-51df-404f-9a5a-a5dd01e60bdd"
+    },
+    "scriptName": "pages-worker--25030108-production",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1795668527677,
+    "event": {
+        "request": {
+            "url": "https://jangkau-c5x.pages.dev/favicon.svg",
+            "method": "GET",
+            "headers": {
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "accept-encoding": "gzip, br",
+                "accept-language": "fi-FI,fi;q=0.9,en-US;q=0.8,en;q=0.7",
+                "cf-connecting-ip": "77.42.64.153",
+                "cf-ipcountry": "FI",
+                "cf-ray": "a6064349ea44c091",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "jangkau-c5x.pages.dev",
+                "priority": "u=0, i",
+                "sec-fetch-dest": "document",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-site": "none",
+                "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Mobile/15E148 Safari/604.1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "77.42.64.153"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "clientAcceptEncoding": "gzip, deflate, br",
+                "requestPriority": "weight=255;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": [
+                    ":method",
+                    ":scheme",
+                    ":path",
+                    ":authority",
+                    "sec-fetch-dest",
+                    "user-agent",
+                    "accept",
+                    "sec-fetch-site",
+                    "sec-fetch-mode",
+                    "accept-language",
+                    "priority",
+                    "accept-encoding"
+                ],
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "HEL",
+                "asn": 24940,
+                "asOrganization": "Hetzner Online GmbH",
+                "country": "FI",
+                "isEUCountry": "1",
+                "city": "Helsinki",
+                "continent": "EU",
+                "region": "Uusimaa",
+                "regionCode": "18",
+                "timezone": "Europe/Helsinki",
+                "longitude": "24.93545",
+                "latitude": "60.16952",
+                "postalCode": "00100",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES128-GCM-SHA256",
+                "tlsClientRandom": "XuMzCnuf0MEJINRU/bjYnWt45W6YIJBi/+nPcNPOP00=",
+                "tlsClientCiphersSha1": "D3paCH7wd44JfVf4vvKqrvplSGQ=",
+                "tlsClientExtensionsSha1": "v8/IPCImNYlFrN5oDtjS4LJuftE=",
+                "tlsClientExtensionsSha1Le": "+nu7X8ERgARASYW4kle9UqO8Bso=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "cb338c75adcedb7d252060c25b5718c1f7a0f944fec7fd6c23150aa489b7fd88",
+                    "serverHandshake": "7fbe4b25f582975e353b266d646e2d5841d7fec0e6aa8120672ab2c6e4fe507d",
+                    "clientFinished": "c99d385e772b2e88ea0e0fffe5e89d15a5306164933c0851c540d0dcb140c20b",
+                    "serverFinished": "0e568cec8fa7d3c998e15ae03fd0233d2d26d56de9e8331a08eed886c9b1365f"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 3362229
+                },
+                "pagesHostName": "jangkau-c5x.pages.dev",
+                "botManagement": {
+                    "corporateProxy": false,
+                    "verifiedBot": false,
+                    "jsDetection": {
+                        "passed": false
+                    },
+                    "staticResource": false,
+                    "detectionIds": {},
+                    "score": 99
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 224,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "e87a2f63-51df-404f-9a5a-a5dd01e60bdd"
+    },
+    "scriptName": "pages-worker--25030108-production",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1795668527163,
+    "event": {
+        "request": {
+            "url": "https://jangkau-c5x.pages.dev/favicon.svg",
+            "method": "GET",
+            "headers": {
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "accept-encoding": "gzip, br",
+                "accept-language": "en-AU,en-US;q=0.9,en;q=0.8",
+                "cf-connecting-ip": "2400:6180:10:200::65f7:1000",
+                "cf-ipcountry": "AU",
+                "cf-ray": "a60643469b6c6a5d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "jangkau-c5x.pages.dev",
+                "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+                "sec-ch-ua-arch": "\"arm\"",
+                "sec-ch-ua-bitness": "\"64\"",
+                "sec-ch-ua-form-factors": "\"Mobile\"",
+                "sec-ch-ua-full-version": "\"150.0.7871.49\"",
+                "sec-ch-ua-full-version-list": "\"Not;A=Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"150.0.7871.49\", \"Google Chrome\";v=\"150.0.7871.49\"",
+                "sec-ch-ua-mobile": "?1",
+                "sec-ch-ua-model": "\"SM-G991B\"",
+                "sec-ch-ua-platform": "\"Android\"",
+                "sec-ch-ua-platform-version": "\"10\"",
+                "sec-ch-ua-wow64": "?0",
+                "sec-fetch-dest": "document",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-site": "none",
+                "sec-fetch-user": "?1",
+                "upgrade-insecure-requests": "1",
+                "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2400:6180:10:200::65f7:1000"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "gzip, deflate, br",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": [
+                    "Host",
+                    "Connection",
+                    "Sec-Ch-Ua",
+                    "Sec-Ch-Ua-Bitness",
+                    "Sec-Ch-Ua-Mobile",
+                    "Sec-Ch-Ua-Platform",
+                    "Upgrade-Insecure-Requests",
+                    "User-Agent",
+                    "Accept",
+                    "Sec-Ch-Ua-Model",
+                    "Sec-Fetch-Site",
+                    "Sec-Fetch-Mode",
+                    "Sec-Ch-Ua-Form-Factors",
+                    "Sec-Ch-Ua-Platform-Version",
+                    "Sec-Fetch-User",
+                    "Sec-Fetch-Dest",
+                    "Accept-Encoding",
+                    "Accept-Language",
+                    "Sec-Ch-Ua-Wow64",
+                    "Sec-Ch-Ua-Full-Version-List",
+                    "Sec-Ch-Ua-Arch",
+                    "Sec-Ch-Ua-Full-Version"
+                ],
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "SYD",
+                "asn": 14061,
+                "asOrganization": "Digital Ocean, Inc.",
+                "country": "AU",
+                "isEUCountry": false,
+                "city": "Sydney",
+                "continent": "OC",
+                "region": "New South Wales",
+                "regionCode": "NSW",
+                "timezone": "Australia/Sydney",
+                "longitude": "151.19627",
+                "latitude": "-33.9044",
+                "postalCode": "2015",
+                "tlsVersion": "TLSv1.2",
+                "tlsCipher": "ECDHE-ECDSA-AES128-GCM-SHA256",
+                "tlsClientRandom": "A4Apji7k6GdOcgiRjQc0n3XPabCLBM9z0Tk0BeoOqio=",
+                "tlsClientCiphersSha1": "CPP2LmhoDBIsNx2xIw7sMPQtEb0=",
+                "tlsClientExtensionsSha1": "NWM+Fqqj6x85q/T10tvnmTiw56s=",
+                "tlsClientExtensionsSha1Le": "6Yt02kgTnCVLolAdb6sJkEsgFws=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "79681f3f89032d90af1f1003d925e77ac8ef44c534afca724f5d2e55c8e945c7",
+                    "serverHandshake": "b6717db515c633296dae3050d859326a69a61168b03fb2a207adb1c9959fd98a",
+                    "clientFinished": "74ccb2b80b2e5af3e22af35fe08b53a93a8c1d3f6df4f2c8a7cbc1f9e7838cc3",
+                    "serverFinished": "d9f4f2c3241d4552d758d15c20359a8ebef08617ae8de0a82cf7d1801e4fe577"
+                },
+                "tlsClientHelloLength": "187",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 5509536
+                },
+                "pagesHostName": "jangkau-c5x.pages.dev",
+                "botManagement": {
+                    "corporateProxy": false,
+                    "verifiedBot": false,
+                    "jsDetection": {
+                        "passed": false
+                    },
+                    "staticResource": false,
+                    "detectionIds": {},
+                    "score": 99
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}

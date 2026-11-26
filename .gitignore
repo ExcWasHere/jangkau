@@ -34,3 +34,9 @@ Thumbs.db
 
 # scratch
 .tmp/
+
+# scratch (jangan pernah commit)
+.tok
+*.log
+.logs/
+.req*.json

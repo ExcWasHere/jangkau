@@ -215,6 +215,7 @@ reportRoutes.get("/:id/merge-candidates", async (c) => {
     p_text: text,
     p_threshold: MERGE_THRESHOLD,
     p_limit: MERGE_LIMIT,
+    p_exclude_id: id,
   });
   if (error) raiseDbError(error);
 

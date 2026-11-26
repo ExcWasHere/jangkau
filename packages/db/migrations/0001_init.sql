@@ -398,10 +398,11 @@ $$;
 -- Trigram dipakai sebagai penyaring murah; keputusan akhir tetap dari
 -- model bahasa (lihat POST /reports/:id/merge-candidates di API).
 create or replace function fn_report_candidates(
-  p_post_id   uuid,
-  p_text      text,
-  p_threshold numeric default 0.35,
-  p_limit     integer default 5
+  p_post_id    uuid,
+  p_text       text,
+  p_threshold  numeric default 0.35,
+  p_limit      integer default 5,
+  p_exclude_id uuid default null
 ) returns table (report_id uuid, similarity numeric)
 language sql stable as $$
   select r.id, round(similarity(r.body_text, p_text)::numeric, 4) as similarity
@@ -409,6 +410,7 @@ language sql stable as $$
   where r.post_id = p_post_id
     and r.status not in ('merged','rejected')
     and r.body_text is not null
+    and (p_exclude_id is null or r.id <> p_exclude_id)  -- jangan tawarkan laporan itu sendiri
     and similarity(r.body_text, p_text) >= p_threshold
   order by similarity(r.body_text, p_text) desc
   limit p_limit;
@@ -686,9 +688,23 @@ create policy audit_logs_admin on audit_logs
 
 -- ---------------------------------------------------------------- grants
 
-grant select on public_reports, public_posts, public_organizations, public_campaigns, public_stock to anon, authenticated;
-grant execute on function fn_report_candidates(uuid, text, numeric, integer) to service_role;
-grant execute on function apply_stock_movement(uuid, numeric, stock_reason, uuid, uuid, text, uuid) to service_role;
+-- PostgREST masuk sebagai `anon` / `authenticated` / `service_role`, jadi
+-- ketiganya butuh GRANT eksplisit. Tanpa ini setiap query ditolak 42501
+-- walau RLS-nya sudah benar. RLS tetap menjadi penyaring untuk
+-- anon/authenticated; service_role memakai BYPASSRLS.
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant select on all tables in schema public to anon;
+
+grant usage, select on all sequences in schema public to service_role, authenticated;
+
+grant execute on all functions in schema public to service_role, authenticated;
+
+-- View publik: satu-satunya jalan baca untuk anon.
+grant select on public_reports, public_posts, public_organizations, public_campaigns, public_stock
+  to anon, authenticated;
 
 -- ---------------------------------------------------------------- settings
 
