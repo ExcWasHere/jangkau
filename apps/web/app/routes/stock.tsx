@@ -1,3 +1,4 @@
+import { RequireVerifiedOrganization } from "~/features/auth/guards";
 import { StockDashboardPage } from "~/features/stock/stock-dashboard-page";
 
 export function meta() {
@@ -5,5 +6,9 @@ export function meta() {
 }
 
 export default function Route() {
-  return <StockDashboardPage />;
+  return (
+    <RequireVerifiedOrganization>
+      <StockDashboardPage />
+    </RequireVerifiedOrganization>
+  );
 }
