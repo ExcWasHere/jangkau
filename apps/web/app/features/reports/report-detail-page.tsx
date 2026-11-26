@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useAuthState } from "~/features/auth/session";
 import { apiFetch, ApiError } from "~/shared/api/client";
 import { Badge, Card, buttonPrimary, buttonSecondary } from "~/shared/ui/primitives";
+import { MergeCandidates } from "./merge-candidates";
 
 export type ReportDetail = {
   id: string;
@@ -197,6 +198,8 @@ export function ReportDetailPage({ initial }: { initial: ReportDetail }) {
           {error && <p className="mt-3 text-[12px] text-danger">{error}</p>}
         </div>
       </Card>
+
+      <MergeCandidates reportId={report.id} />
     </div>
   );
 }

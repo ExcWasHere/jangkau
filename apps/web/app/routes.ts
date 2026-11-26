@@ -12,6 +12,7 @@ export default [
   { path: "lapor", file: "routes/report-new.tsx" },
   { path: "laporan", file: "routes/reports.tsx" },
   { path: "konfirmasi-rab", file: "routes/confirm-rab.tsx" },
+  { path: "stok", file: "routes/stock.tsx" },
 
   // Organisasi
   { path: "organisasi", file: "routes/organization-status.tsx" },
