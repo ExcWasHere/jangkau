@@ -5,12 +5,12 @@ import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 
 import type { AppEnv } from "./env.js";
-import { AppError } from "./lib/errors.js";
-import { requireSupabase } from "./middleware/require-supabase.js";
-import { meRoutes } from "./routes/me.js";
-import { postRoutes } from "./routes/posts.js";
-import { reportRoutes } from "./routes/reports.js";
-import { uploadRoutes } from "./routes/uploads.js";
+import { AppError } from "./shared/errors.js";
+import { requireSupabase } from "./shared/middleware/require-supabase.js";
+import { meRoutes } from "./modules/me/routes.js";
+import { postRoutes } from "./modules/posts/routes.js";
+import { reportRoutes } from "./modules/reports/routes.js";
+import { uploadRoutes } from "./modules/uploads/routes.js";
 
 const app = new Hono<AppEnv>();
 

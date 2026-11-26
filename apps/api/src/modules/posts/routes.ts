@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 
-import type { AppEnv } from "../env.js";
-import { raiseDbError } from "../lib/db-errors.js";
-import { notFound } from "../lib/errors.js";
-import { adminClient } from "../lib/supabase.js";
+import type { AppEnv } from "../../env.js";
+import { raiseDbError } from "../../shared/db-errors.js";
+import { notFound } from "../../shared/errors.js";
+import { adminClient } from "../../shared/supabase.js";
 
 export const postRoutes = new Hono<AppEnv>();
 

@@ -32,6 +32,10 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# dokumen kerja internal (PRD, catatan) — tidak ikut repo
+prd-*.md
+docs/internal/
+
 # scratch — token lokal, log tail, body request ad-hoc
 .tmp/
 .tok

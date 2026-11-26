@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
-import { isSupabaseConfigured } from "../lib/env";
-import { useRedirectIfAuthenticated } from "../lib/session";
-import { getSupabaseBrowserClient } from "../lib/supabase";
+import { isSupabaseConfigured } from "~/shared/lib/env";
+import { useRedirectIfAuthenticated } from "~/features/auth/session";
+import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 
 export default function Login() {
   const navigate = useNavigate();

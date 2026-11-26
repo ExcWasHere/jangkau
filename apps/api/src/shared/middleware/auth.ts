@@ -1,9 +1,9 @@
 import type { MiddlewareHandler } from "hono";
 
-import type { AppEnv, SessionUser } from "../env.js";
-import { raiseDbError } from "../lib/db-errors.js";
-import { forbidden, unauthorized } from "../lib/errors.js";
-import { adminClient } from "../lib/supabase.js";
+import type { AppEnv, SessionUser } from "../../env.js";
+import { raiseDbError } from "../db-errors.js";
+import { forbidden, unauthorized } from "../errors.js";
+import { adminClient } from "../supabase.js";
 
 /**
  * Verifikasi access token Supabase, lalu muat profil + organisasi

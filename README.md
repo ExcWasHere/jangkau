@@ -73,18 +73,26 @@ Cek: `curl https://jangkau-api.<subdomain>.workers.dev/api/v1/health`.
 
 ```
 apps/
-  web/                    React Router 7 (SSR di Pages) + Tailwind v4
-    app/                  rute, komponen, lib (api, outbox, session)
+  web/
+    app/
+      routes/             modul rute: tipis, hanya menyusun fitur
+      features/           per-domain: auth, reports, posts, campaigns, organizations
+      shared/             ui primitives, api client, lib, layout
+    assets/               sumber aset mentah (tidak disajikan)
+    public/               aset yang disajikan (pattern.svg hasil generate)
     functions/[[path]].ts entry Pages Functions
-  api/                    Hono 4 (Cloudflare Workers)
-    src/app.ts            aplikasi Hono
+  api/
+    src/app.ts            aplikasi Hono (komposisi)
     src/index.ts          entry Worker
-    src/routes/           me, posts, reports, uploads
-    src/lib/              supabase, ai, r2, errors, geo
+    src/modules/          per-domain: me, posts, reports, organizations, campaigns, stock, uploads
+    src/shared/           errors, supabase, ai, r2, geo, middleware
 packages/
-  shared/                 zod schema + enum + label (web & api)
+  shared/                 zod schema + enum + label (kontrak web & api)
   db/                     migrasi SQL, seed, tipe hasil generate
 ```
+
+Aturan arah dependensi: `routes → features → shared`. Fitur tidak mengimpor fitur lain;
+`shared` tidak mengimpor `features`. API mengikuti pola yang sama dengan `modules → shared`.
 
 Keputusan arsitektur dan skema database lengkap ada di [`prd-databaseSchema.md`](./prd-databaseSchema.md).
 Dokumen itu sumber kebenaran: ubah dokumen dulu, baru kode.

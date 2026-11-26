@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 import { Link } from "react-router";
 
-import { useAuthState } from "../lib/session";
+import { useAuthState } from "~/features/auth/session";
 
 export function meta({}: Route.MetaArgs) {
   return [

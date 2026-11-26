@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import type { Session } from "@supabase/supabase-js";
 
-import { isSupabaseConfigured } from "./env";
-import { getSupabaseBrowserClient } from "./supabase";
+import { isSupabaseConfigured } from "~/shared/lib/env";
+import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 
 /**
  * Sesi Supabase untuk komponen client, tanpa memaksa navigasi.

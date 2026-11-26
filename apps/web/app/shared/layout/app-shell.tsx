@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router";
 
-import { getSupabaseBrowserClient } from "../lib/supabase";
+import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 
 const NAV = [
   { to: "/lapor", label: "Lapor" },
