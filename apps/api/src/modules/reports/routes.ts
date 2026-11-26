@@ -412,16 +412,50 @@ reportRoutes.post("/:id/merge", requireAuth, async (c) => {
   }
 
   const admin = adminClient(c.env);
+  const sourceId = c.req.param("id");
+
+  const { data: target } = await admin
+    .from("reports")
+    .select("id, post_id")
+    .eq("id", into)
+    .maybeSingle();
+  if (!target) throw notFound("Laporan tujuan tidak ditemukan");
+
+  // Dukungan ikut pindah: kalau tidak, laporan yang digabung menghapus
+  // dukungan yang sudah diberikan warga, dan ambang jadi tidak pernah
+  // tercapai. Duplikat vote dari akun yang sama diabaikan (PK gabungan).
+  const { data: sourceVotes } = await admin
+    .from("report_votes")
+    .select("profile_id")
+    .eq("report_id", sourceId);
+
+  if (sourceVotes?.length) {
+    const { error: voteError } = await admin
+      .from("report_votes")
+      .upsert(
+        sourceVotes.map((vote) => ({ report_id: into, profile_id: vote.profile_id })),
+        { onConflict: "report_id,profile_id", ignoreDuplicates: true },
+      );
+    if (voteError) raiseDbError(voteError);
+  }
+
   const { data, error } = await admin
     .from("reports")
     .update({ status: "merged", merged_into_id: into })
-    .eq("id", c.req.param("id"))
+    .eq("id", sourceId)
     .select("id, status, merged_into_id")
     .maybeSingle();
 
   if (error) raiseDbError(error);
   if (!data) throw notFound("Laporan tidak ditemukan");
-  return c.json(data);
+
+  const { data: targetAfter } = await admin
+    .from("reports")
+    .select("id, upvote_count, status")
+    .eq("id", into)
+    .maybeSingle();
+
+  return c.json({ ...data, target: targetAfter, movedVotes: sourceVotes?.length ?? 0 });
 });
 
 reportRoutes.post("/:id/votes", requireAuth, async (c) => {

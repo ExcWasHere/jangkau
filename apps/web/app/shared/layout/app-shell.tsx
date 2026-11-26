@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { to: "/laporan", label: "Laporan saya", roles: ["resident", "organization", "admin"] },
   { to: "/konfirmasi-rab", label: "Konfirmasi RAB", roles: ["resident", "organization", "admin"] },
   { to: "/laporan-masuk", label: "Laporan masuk", roles: ["organization", "admin"] },
+  { to: "/stok", label: "Stok", roles: ["organization", "admin"] },
   { to: "/organisasi", label: "Organisasi", roles: ["organization", "admin"] },
   { to: "/admin/organisasi", label: "Verifikasi", roles: ["admin"] },
 ];
