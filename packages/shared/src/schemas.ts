@@ -24,11 +24,16 @@ export const paginationSchema = z.object({
   cursor: z.string().uuid().optional(),
 });
 
+// Key R2 berbentuk `<prefix>/<scope>/[<user>/]<uuid>.<ext>`; hanya karakter
+// aman yang diizinkan supaya tidak ada path traversal lewat body request.
 const mediaKeySchema = z
   .string()
   .min(1)
   .max(512)
-  .regex(/^[a-z0-9-]+\/[^/]+\/[A-Za-z0-9._-]+$/, "format key R2 tidak valid");
+  .regex(
+    /^[a-z0-9-]+(\/[A-Za-z0-9-]+){1,3}\/[A-Za-z0-9._-]+$/,
+    "format key R2 tidak valid",
+  );
 
 /**
  * Body `POST /api/v1/reports`.
@@ -46,7 +51,16 @@ export const createReportSchema = z
     headcountDelta: z.number().int().min(-5000).max(5000).optional(),
     location: coordinateSchema,
     capturedAt: z.iso.datetime({ offset: true }),
-    mediaKeys: z.array(mediaKeySchema).max(5).default([]),
+    media: z
+      .array(
+        z.object({
+          key: mediaKeySchema,
+          mimeType: z.string().max(100),
+          sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+        }),
+      )
+      .max(5)
+      .default([]),
   })
   .refine((v) => Boolean(v.bodyText || v.transcript), {
     message: "Isi teks atau rekaman suara",

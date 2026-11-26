@@ -22,7 +22,13 @@ function objectUrl(env: Bindings, key: string, ttl: number): URL {
   return url;
 }
 
-/** URL PUT berumur pendek; browser mengunggah langsung ke R2. */
+/**
+ * URL PUT berumur pendek; browser mengunggah langsung ke R2.
+ *
+ * `aws.signQuery` wajib: tanpa itu aws4fetch menandatangani lewat header
+ * dan URL yang dikembalikan tidak berisi `X-Amz-Signature`, sehingga R2
+ * menolaknya dengan `InvalidArgument: Authorization`.
+ */
 export async function presignPut(
   env: Bindings,
   key: string,
@@ -31,6 +37,7 @@ export async function presignPut(
   const signed = await client(env).sign(objectUrl(env, key, PUT_TTL_SECONDS), {
     method: "PUT",
     headers: { "content-type": contentType },
+    aws: { signQuery: true },
   });
   return signed.url;
 }
@@ -39,10 +46,7 @@ export async function presignPut(
 export async function presignGet(env: Bindings, key: string): Promise<string> {
   const signed = await client(env).sign(objectUrl(env, key, GET_TTL_SECONDS), {
     method: "GET",
+    aws: { signQuery: true },
   });
   return signed.url;
-}
-
-export function buildKey(prefix: string, name: string): string {
-  return `${prefix}/${name}`;
 }

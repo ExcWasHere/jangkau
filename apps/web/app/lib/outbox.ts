@@ -10,6 +10,17 @@ import type { NeedCategory, SeverityLevel } from "@jangkau/shared";
 
 export type OutboxState = "queued" | "uploading" | "synced" | "failed";
 
+/**
+ * Foto laporan. `blob` disimpan di IndexedDB sampai unggahan ke R2 berhasil;
+ * setelah itu `key` terisi dan blob tidak dipakai lagi.
+ */
+export type OutboxMedia = {
+  mimeType: string;
+  sizeBytes: number;
+  blob: Blob;
+  key?: string;
+};
+
 export type OutboxItem = {
   clientUuid: string;
   postId: string;
@@ -20,7 +31,7 @@ export type OutboxItem = {
   headcountDelta?: number;
   location: { lat: number; lng: number; accuracyM?: number };
   capturedAt: string;
-  mediaKeys: string[];
+  media: OutboxMedia[];
   state: OutboxState;
   attempts: number;
   error?: string;

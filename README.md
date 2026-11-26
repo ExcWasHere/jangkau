@@ -24,7 +24,7 @@ Di dashboard Cloudflare → Workers & Pages → Create → Pages → Connect to 
 | Production branch | `main` (atau `development` untuk staging) |
 | Framework preset | `None` / `React Router` |
 | **Root directory** | **`apps/web`** |
-| Build command | `bun run build` |
+| Build command | `cd ../.. && bun install && cd apps/web && bun run build` |
 | Build output directory | `build/client` |
 
 Environment variables (Production **dan** Preview — `VITE_*` di-inline saat build):
@@ -34,8 +34,13 @@ Environment variables (Production **dan** Preview — `VITE_*` di-inline saat bu
 | `VITE_SUPABASE_URL` | `https://hfctvwlhviuqnwnlgvnn.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | anon/publishable key Supabase |
 | `VITE_API_BASE_URL` | `https://jangkau-api.<subdomain-akun>.workers.dev/api/v1` |
+| `SKIP_DEPENDENCY_INSTALL` | `1` — wajib. Tanpa ini Pages menjalankan `npm install` di `apps/web` dan gagal dengan `EUNSUPPORTEDPROTOCOL: workspace:*` |
 
 `apps/web/functions/[[path]].ts` adalah satu-satunya entry SSR; tidak ada API di dalamnya.
+
+Kenapa `SKIP_DEPENDENCY_INSTALL`: repo ini Bun workspace (`workspace:*`), yang tidak
+dipahami npm. Install harus dijalankan dari root repo dengan Bun, sehingga build
+command naik dua level dulu sebelum install.
 
 ## Setup Worker (backend)
 
@@ -173,7 +178,7 @@ Lapor (offline-first) → Klasifikasi & merge AI → Geofence + upvote
 | Landing, auth (Supabase), halaman lapor + antrean offline | jalan |
 | API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan |
 | Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | sudah diterapkan + seed demo |
-| Upload R2 | bucket `jangkau-media` + CORS siap; **menunggu Access Key** dari dashboard |
+| Upload R2 | **jalan**: presigned PUT/GET, foto laporan tampil di daftar |
 | Midtrans, tranche, stok, peta | belum |
 | Notifikasi email | **terblokir**: Cloudflare Email butuh domain/zona yang belum ada |
 

@@ -6,6 +6,7 @@ import type { AppEnv } from "../env.js";
 import { classifyReport, judgeDuplicate } from "../lib/ai.js";
 import { raiseDbError } from "../lib/db-errors.js";
 import { distanceMeters } from "../lib/geo.js";
+import { presignGet } from "../lib/r2.js";
 import { badRequest, forbidden, notFound, unprocessable } from "../lib/errors.js";
 import { adminClient, toPoint } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -106,14 +107,14 @@ reportRoutes.post("/", async (c) => {
     );
   }
 
-  if (input.mediaKeys.length > 0) {
+  if (input.media.length > 0) {
     const { error: mediaError } = await admin.from("report_media").insert(
-      input.mediaKeys.map((key) => ({
+      input.media.map((file) => ({
         report_id: created.id,
-        r2_key: key,
+        r2_key: file.key,
         kind: "report_photo" as const,
-        mime_type: "image/jpeg",
-        size_bytes: 1,
+        mime_type: file.mimeType,
+        size_bytes: file.sizeBytes,
       })),
     );
     if (mediaError) raiseDbError(mediaError);
@@ -157,7 +158,29 @@ reportRoutes.get("/", async (c) => {
   const { data, error } = await query;
   if (error) raiseDbError(error);
 
-  return c.json({ items: data ?? [] });
+  const rows = data ?? [];
+  if (rows.length === 0) return c.json({ items: [] });
+
+  // Bucket R2 privat, jadi URL foto ditandatangani di sini (TTL 5 menit)
+  // supaya bisa dipakai langsung sebagai `src` <img> tanpa header.
+  const { data: mediaRows } = await admin
+    .from("report_media")
+    .select("report_id, r2_key, mime_type")
+    .in("report_id", rows.map((row) => row.id));
+
+  const byReport = new Map<string, Array<{ mimeType: string; url: string }>>();
+  await Promise.all(
+    (mediaRows ?? []).map(async (row) => {
+      const url = await presignGet(c.env, row.r2_key);
+      const list = byReport.get(row.report_id) ?? [];
+      list.push({ mimeType: row.mime_type, url });
+      byReport.set(row.report_id, list);
+    }),
+  );
+
+  return c.json({
+    items: rows.map((row) => ({ ...row, media: byReport.get(row.id) ?? [] })),
+  });
 });
 
 /** Klasifikasi ulang manual (mis. setelah model diperbaiki). */

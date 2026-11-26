@@ -11,13 +11,17 @@ import {
   listOutbox,
   newClientUuid,
   syncOutbox,
+  updateOutbox,
   type OutboxItem,
+  type OutboxMedia,
 } from "../lib/outbox";
 import { useSession } from "../lib/session";
 
 type Post = { id: string; name: string; regency: string | null; headcount: number };
 
 const POSTS_CACHE_KEY = "posts";
+const MAX_PHOTOS = 3;
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
 const STATE_LABELS: Record<OutboxItem["state"], string> = {
   queued: "Menunggu dikirim",
@@ -48,6 +52,9 @@ export default function ReportNew() {
   );
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const [photos, setPhotos] = useState<OutboxMedia[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,9 +64,60 @@ export default function ReportNew() {
   }, []);
 
   /** Satu-satunya jalur kirim; dipakai submit dan tombol "Kirim sekarang". */
+  /**
+   * Unggah foto yang belum punya `key`: minta URL PUT ke API, kirim blob
+   * langsung ke R2, lalu simpan key-nya di antrean agar retry tidak
+   * mengunggah ulang.
+   */
+  const uploadPending = useCallback(
+    async (item: OutboxItem) => {
+      if (!token) throw new Error("Sesi belum siap");
+      const media: Array<{ key: string; mimeType: string; sizeBytes: number }> = [];
+
+      for (const [index, file] of item.media.entries()) {
+        let key = file.key;
+
+        if (!key) {
+          const presign = await apiFetch<{ key: string; putUrl: string }>("/uploads/presign", {
+            method: "POST",
+            token,
+            body: JSON.stringify({
+              kind: "report_photo",
+              contentType: file.mimeType,
+              sizeBytes: file.sizeBytes,
+              scopeId: item.postId,
+            }),
+          });
+
+          const put = await fetch(presign.putUrl, {
+            method: "PUT",
+            headers: { "content-type": file.mimeType },
+            body: file.blob,
+          });
+          if (!put.ok) {
+            throw new Error(`Unggah foto ${index + 1} gagal (${put.status})`);
+          }
+
+          key = presign.key;
+          const nextMedia = item.media.map((entry, position) =>
+            position === index ? { ...entry, key } : entry,
+          );
+          await updateOutbox(item.clientUuid, { media: nextMedia });
+        }
+
+        media.push({ key, mimeType: file.mimeType, sizeBytes: file.sizeBytes });
+      }
+
+      return media;
+    },
+    [token],
+  );
+
   const sendItem = useCallback(
     async (item: OutboxItem) => {
       if (!token) throw new Error("Sesi belum siap");
+      const media = await uploadPending(item);
+
       const response = await apiFetch<{ id: string; duplicate: boolean }>("/reports", {
         method: "POST",
         token,
@@ -73,12 +131,12 @@ export default function ReportNew() {
           headcountDelta: item.headcountDelta,
           location: item.location,
           capturedAt: item.capturedAt,
-          mediaKeys: item.mediaKeys,
+          media,
         }),
       });
       return { id: response.id, duplicate: response.duplicate };
     },
-    [token],
+    [token, uploadPending],
   );
 
   const runSync = useCallback(async () => {
@@ -165,11 +223,12 @@ export default function ReportNew() {
       headcountDelta: headcount ? Number(headcount) : undefined,
       location,
       capturedAt: new Date().toISOString(),
-      mediaKeys: [],
+      media: photos,
     });
 
     setBodyText("");
     setHeadcount("");
+    setPhotos([]);
     await refreshOutbox();
     setMessage("Laporan tersimpan di perangkat. Mencoba mengirim…");
 
@@ -292,6 +351,78 @@ export default function ReportNew() {
             className="rounded-lg border border-line px-3 py-2 font-normal outline-none focus:border-brand"
           />
         </label>
+
+        <div className="rounded-lg border border-line bg-surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Foto kondisi (opsional)</p>
+              <p className="text-xs text-muted">
+                Maksimal {MAX_PHOTOS} foto, 10 MB per file. Disimpan di perangkat sampai
+                berhasil diunggah.
+              </p>
+            </div>
+            <label className="cursor-pointer rounded-lg border border-brand-line bg-white px-3 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">
+              Pilih foto
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  event.target.value = "";
+                  setPhotoError(null);
+
+                  const oversized = files.find((file) => file.size > MAX_PHOTO_BYTES);
+                  if (oversized) {
+                    setPhotoError(`${oversized.name} melebihi 10 MB.`);
+                    return;
+                  }
+
+                  setPhotos((current) => {
+                    const room = MAX_PHOTOS - current.length;
+                    if (files.length > room) {
+                      setPhotoError(`Hanya ${room} foto lagi yang bisa ditambahkan.`);
+                    }
+                    return [
+                      ...current,
+                      ...files.slice(0, Math.max(0, room)).map((file) => ({
+                        mimeType: file.type,
+                        sizeBytes: file.size,
+                        blob: file,
+                      })),
+                    ];
+                  });
+                }}
+              />
+            </label>
+          </div>
+
+          {photos.length > 0 && (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {photos.map((photo, index) => (
+                <li
+                  key={`${index}-${photo.sizeBytes}`}
+                  className="flex items-center gap-2 rounded-lg border border-line bg-white px-2 py-1 text-xs"
+                >
+                  <span className="text-muted">
+                    {photo.mimeType.replace("image/", "").toUpperCase()} ·{" "}
+                    {Math.round(photo.sizeBytes / 1024)} KB
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+                    className="font-semibold text-danger hover:underline"
+                  >
+                    Hapus
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {photoError && <p className="mt-2 text-xs text-danger">{photoError}</p>}
+        </div>
 
         <div className="rounded-lg border border-line bg-surface p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

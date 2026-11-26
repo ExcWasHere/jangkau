@@ -32,17 +32,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-# scratch
+# scratch — token lokal, log tail, body request ad-hoc
 .tmp/
-
-# scratch (jangan pernah commit)
 .tok
 *.log
-.logs/
-.req*.json
-
-# scratch lokal (jangan pernah commit)
-.tok
-.mig.log
 .logs/
 .req*.json

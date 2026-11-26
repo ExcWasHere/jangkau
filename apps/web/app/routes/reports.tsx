@@ -16,6 +16,7 @@ type Report = {
   upvote_count: number;
   captured_at: string;
   ai_confidence: number | null;
+  media: Array<{ mimeType: string; url: string }>;
 };
 
 export default function Reports() {
@@ -89,6 +90,22 @@ export default function Reports() {
               )}
             </div>
             <p className="mt-2 text-sm">{report.body_text}</p>
+            {report.media.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {report.media.map((file, index) => (
+                  <li key={`${report.id}-${index}`}>
+                    <a href={file.url} target="_blank" rel="noreferrer">
+                      <img
+                        src={file.url}
+                        alt={`Foto laporan ${index + 1}`}
+                        loading="lazy"
+                        className="h-20 w-20 rounded-lg border border-line object-cover"
+                      />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>
