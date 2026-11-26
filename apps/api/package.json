@@ -20,5 +20,10 @@
     "@cloudflare/workers-types": "^4.20250923.0",
     "typescript": "5.9.3",
     "wrangler": "4.168.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app.ts",
+    "./env": "./src/env.ts"
   }
 }

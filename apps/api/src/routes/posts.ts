@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import type { AppEnv } from "../env.js";
+import { raiseDbError } from "../lib/db-errors.js";
 import { notFound } from "../lib/errors.js";
 import { adminClient } from "../lib/supabase.js";
 
@@ -13,7 +14,7 @@ postRoutes.get("/", async (c) => {
     .select("*")
     .order("name", { ascending: true });
 
-  if (error) throw error;
+  if (error) raiseDbError(error);
   return c.json({ items: data ?? [] });
 });
 

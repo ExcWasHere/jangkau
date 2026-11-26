@@ -3,7 +3,7 @@
 -- Dijalankan di Supabase (Postgres 15+) lewat `supabase db push`.
 
 create extension if not exists postgis;
-create extension if not exists vector;
+create extension if not exists pg_trgm;   -- kandidat duplikat laporan
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------- enums
@@ -104,6 +104,7 @@ create index reports_post_status_idx on reports (post_id, status);
 create index reports_feed_idx        on reports (status, upvote_count desc, captured_at desc);
 create index reports_reporter_idx    on reports (reporter_id, created_at desc);
 create index reports_location_gix    on reports using gist (location);
+create index reports_text_trgm_idx   on reports using gin (body_text gin_trgm_ops);
 
 create table report_media (
   id         uuid primary key default gen_random_uuid(),
@@ -115,14 +116,6 @@ create table report_media (
   created_at timestamptz not null default now()
 );
 create index report_media_report_idx on report_media (report_id);
-
-create table report_embeddings (
-  report_id  uuid primary key references reports(id) on delete cascade,
-  embedding  vector(768) not null,
-  model      text not null,
-  created_at timestamptz not null default now()
-);
-create index report_embeddings_hnsw on report_embeddings using hnsw (embedding vector_cosine_ops);
 
 create table report_votes (
   report_id  uuid not null references reports(id) on delete cascade,
@@ -401,21 +394,23 @@ begin
 end;
 $$;
 
--- Kandidat duplikat: laporan lain di pos yang sama dengan kemiripan >= threshold.
-create or replace function fn_similar_reports(
+-- Kandidat duplikat: laporan lain di pos yang sama dengan teks mirip.
+-- Trigram dipakai sebagai penyaring murah; keputusan akhir tetap dari
+-- model bahasa (lihat POST /reports/:id/merge-candidates di API).
+create or replace function fn_report_candidates(
   p_post_id   uuid,
-  p_embedding vector(768),
-  p_threshold numeric default 0.86,
+  p_text      text,
+  p_threshold numeric default 0.35,
   p_limit     integer default 5
 ) returns table (report_id uuid, similarity numeric)
 language sql stable as $$
-  select e.report_id, round((1 - (e.embedding <=> p_embedding))::numeric, 4) as similarity
-  from report_embeddings e
-  join reports r on r.id = e.report_id
+  select r.id, round(similarity(r.body_text, p_text)::numeric, 4) as similarity
+  from reports r
   where r.post_id = p_post_id
     and r.status not in ('merged','rejected')
-    and (1 - (e.embedding <=> p_embedding)) >= p_threshold::double precision
-  order by e.embedding <=> p_embedding
+    and r.body_text is not null
+    and similarity(r.body_text, p_text) >= p_threshold
+  order by similarity(r.body_text, p_text) desc
   limit p_limit;
 $$;
 
@@ -540,7 +535,6 @@ alter table organizations         enable row level security;
 alter table organization_members  enable row level security;
 alter table reports               enable row level security;
 alter table report_media          enable row level security;
-alter table report_embeddings     enable row level security;
 alter table report_votes          enable row level security;
 alter table campaigns             enable row level security;
 alter table budget_items          enable row level security;
@@ -612,10 +606,6 @@ create policy report_media_read on report_media
 create policy report_media_insert on report_media
   for insert to authenticated
   with check (exists (select 1 from reports r where r.id = report_media.report_id and r.reporter_id = auth.uid()));
-
--- embeddings: hanya API (service_role)
-create policy report_embeddings_admin on report_embeddings
-  for all to authenticated using (fn_is_admin()) with check (fn_is_admin());
 
 -- votes
 create policy votes_read on report_votes for select to authenticated using (true);
@@ -697,7 +687,7 @@ create policy audit_logs_admin on audit_logs
 -- ---------------------------------------------------------------- grants
 
 grant select on public_reports, public_posts, public_organizations, public_campaigns, public_stock to anon, authenticated;
-grant execute on function fn_similar_reports(uuid, vector, numeric, integer) to service_role;
+grant execute on function fn_report_candidates(uuid, text, numeric, integer) to service_role;
 grant execute on function apply_stock_movement(uuid, numeric, stock_reason, uuid, uuid, text, uuid) to service_role;
 
 -- ---------------------------------------------------------------- settings

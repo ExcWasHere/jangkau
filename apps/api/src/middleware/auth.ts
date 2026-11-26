@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 
 import type { AppEnv, SessionUser } from "../env.js";
+import { raiseDbError } from "../lib/db-errors.js";
 import { forbidden, unauthorized } from "../lib/errors.js";
 import { adminClient } from "../lib/supabase.js";
 
@@ -28,7 +29,7 @@ export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
     .eq("id", authData.user.id)
     .maybeSingle();
 
-  if (profileError) throw profileError;
+  if (profileError) raiseDbError(profileError);
   if (!profile) throw unauthorized("Profil belum dibuat");
 
   const { data: membership } = await admin

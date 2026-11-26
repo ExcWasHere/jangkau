@@ -27,14 +27,14 @@ Yang **tidak** dibangun (sesuai §3.2 proposal): pencairan uang nyata, aplikasi 
 | # | Keputusan | Alasan | Konsekuensi |
 |---|---|---|---|
 | D1 | **bun workspaces** monorepo (`apps/*`, `packages/*`), TypeScript 5.9 | Satu lockfile, install cepat, `bun run --filter` cukup untuk 2 app | Anggota tim perlu install Bun; CI/deploy tetap memakai perintah `bunx` |
-| D2 | `apps/web` = **React Router 7.18 framework mode, SSR di Cloudflare Workers** (`@cloudflare/vite-plugin`) | Proposal menyebut RRv7 → dipin ke 7.x, bukan v8. SSR memberi HTML siap-indeks untuk halaman pos/kampanye, penting karena donor membagikan tautan | Service worker wajib menyimpan dokumen navigasi agar rute tetap terbuka saat offline; antrean laporan tetap murni client (IndexedDB) |
-| D3 | `apps/api` = **Hono 4 di Cloudflare Workers** | Ringan, deploy 1 perintah, cocok dengan R2/KV | Tidak ada Node API (Buffer, fs); pakai Web API |
+| D2 | `apps/web` = **React Router 7.18 framework mode, SSR lewat Cloudflare Pages Functions** (`functions/[[path]].ts`) | Proposal menyebut RRv7 → dipin ke 7.x, bukan v8. SSR memberi HTML siap-indeks untuk halaman pos/kampanye | Service worker wajib menyimpan dokumen navigasi agar rute tetap terbuka saat offline; antrean laporan tetap murni client (IndexedDB) |
+| D3 | `apps/api` = **Hono 4**, dipasang di origin yang sama dengan web lewat Pages Functions (`/api/*`) | Satu deploy, satu origin → tidak ada CORS dan tidak butuh domain sendiri. `apps/api/src/index.ts` tetap ada bila nanti perlu Worker terpisah | Tidak ada Node API (Buffer, fs); pakai Web API. Semua secret API hidup di project Pages, bukan di Worker terpisah |
 | D4 | Frontend **hanya** bicara ke Hono API (kecuali endpoint Auth Supabase) | Satu titik otorisasi; RLS jadi lapisan kedua, bukan satu-satunya | Semua aturan bisnis harus ada di API, bukan di client |
 | D5 | API memakai **service_role key** (secret Worker) setelah memverifikasi JWT user | Hono perlu menulis lintas tabel (trigger campaign, tranche, stok) | `service_role` **tidak boleh** pernah sampai ke browser; RLS tetap `deny by default` |
-| D6 | DB = **Supabase Postgres + PostGIS + pgvector** | Proposal butuh geofence radius & similarity merge | Free tier 500 MB; embedding 768 dim × N report, aman untuk demo |
+| D6 | DB = **Supabase Postgres + PostGIS + pg_trgm** | Geofence radius butuh PostGIS; dedupe laporan memakai trigram sebagai penyaring kandidat | Tidak ada model embedding di provider AI yang dipakai → tidak ada kolom vektor, tidak ada biaya embedding |
 | D7 | Object storage = **Cloudflare R2**, bucket privat, upload via **presigned PUT** (`aws4fetch`) | Tidak membebani Worker untuk streaming file; client upload langsung saat online | Perlu CORS R2 untuk PUT dari origin web |
 | D8 | Pembayaran = **Midtrans Snap sandbox** + webhook bertanda tangan SHA512 | Proposal §4.2 | Payout tetap disimulasikan; status "released" hanya catatan |
-| D9 | AI = **Gemini** via `@google/genai`: klasifikasi (JSON schema) + embedding 768 dim | Satu provider, gratis di tier awal | Kalau kuota habis, alur tetap jalan dengan `category = 'other'` |
+| D9 | AI = **inferhub** (`https://api.inferhub.dev/v1`, kompatibel [OI] chat-completions), model `ag/gemini-3.8-flash-high` | Murah (~$0.0002/laporan), tanpa SDK tambahan, provider bisa ditukar hanya dengan `AI_BASE_URL` | Model ini tidak memaksa JSON schema, jadi keluaran divalidasi zod + satu kali retry. Bila AI gagal/lambat, laporan tetap tersimpan dengan `category='other'` |
 | D10 | Auth = **Supabase Auth** (email+password), profil dibuat trigger | Boring, tidak perlu bikin auth sendiri | Tidak ada OAuth; reset password lewat email Supabase |
 | D11 | Semua mutasi stok lewat RPC `apply_stock_movement()` | Log & saldo tidak boleh bisa desync | Tidak ada `UPDATE stock_items` langsung dari app |
 
@@ -61,7 +61,7 @@ Jangkau/
 | `SUPABASE_SERVICE_ROLE_KEY` | **api only (secret)** | bypass RLS |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | api (secret) | presign |
 | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION=false` | api (secret) / web | sandbox |
-| `GEMINI_API_KEY` | api (secret) | klasifikasi + embedding |
+| `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | Pages (secret/var) | klasifikasi + verdict duplikat |
 | `APP_BASE_URL` | api | untuk `finish_redirect_url` Midtrans |
 
 `.dev.vars` (api) & `.env` (web) masuk `.gitignore`; sediakan `.dev.vars.example` / `.env.example`. **Tidak ada secret di repo** (syarat handbook §Final Phase 6).
@@ -80,7 +80,6 @@ erDiagram
   relief_posts ||--o{ reports : "hosts"
   relief_posts ||--o{ stock_items : "holds"
   reports ||--o{ report_media : "attaches"
-  reports ||--|| report_embeddings : "embedded"
   reports ||--o{ report_votes : "upvotes"
   reports ||--o| campaigns : "becomes"
   organizations ||--o{ campaigns : "runs"
@@ -116,7 +115,7 @@ Semua DDL di bawah adalah isi `packages/db/supabase/migrations/0001_init.sql` (s
 
 ```sql
 create extension if not exists postgis;
-create extension if not exists vector;
+create extension if not exists pg_trgm;   -- kandidat duplikat laporan
 create extension if not exists pgcrypto;   -- gen_random_uuid()
 
 create type app_role               as enum ('resident','organization','admin');
@@ -236,17 +235,7 @@ create table report_media (
 );
 create index report_media_report_idx on report_media (report_id);
 
--- 6. Embedding untuk merge laporan serupa
-create table report_embeddings (
-  report_id  uuid primary key references reports(id) on delete cascade,
-  embedding  vector(768) not null,
-  model      text not null,
-  created_at timestamptz not null default now()
-);
-create index report_embeddings_hnsw on report_embeddings
-  using hnsw (embedding vector_cosine_ops);
-
--- 7. Upvote
+-- 6. Upvote
 create table report_votes (
   report_id  uuid not null references reports(id) on delete cascade,
   profile_id uuid not null references profiles(id) on delete cascade,
@@ -254,7 +243,7 @@ create table report_votes (
   primary key (report_id, profile_id)
 );
 
--- 8. Kampanye + RAB
+-- 7. Kampanye + RAB
 create table campaigns (
   id                       uuid primary key default gen_random_uuid(),
   report_id                uuid not null unique references reports(id),
@@ -290,7 +279,7 @@ create table budget_items (
 );
 create index budget_items_campaign_idx on budget_items (campaign_id);
 
--- 9. Donasi
+-- 8. Donasi
 create table donations (
   id                    uuid primary key default gen_random_uuid(),
   campaign_id           uuid not null references campaigns(id),
@@ -310,7 +299,7 @@ create table donations (
 create index donations_campaign_status_idx on donations (campaign_id, status);
 create index donations_donor_idx          on donations (donor_id, created_at desc);
 
--- 10. Pencairan bertahap
+-- 9. Pencairan bertahap
 create table tranches (
   id                  uuid primary key default gen_random_uuid(),
   campaign_id         uuid not null references campaigns(id) on delete cascade,
@@ -340,7 +329,7 @@ create table tranche_receipts (
 );
 create index tranche_receipts_tranche_idx on tranche_receipts (tranche_id);
 
--- 11. Stok per pos
+-- 10. Stok per pos
 create table stock_items (
   id                  uuid primary key default gen_random_uuid(),
   post_id             uuid not null references relief_posts(id) on delete cascade,
@@ -368,7 +357,7 @@ create table stock_logs (
 );
 create index stock_logs_item_idx on stock_logs (stock_item_id, created_at desc);
 
--- 12. Pendukung
+-- 11. Pendukung
 create table app_settings (
   key        text primary key,
   value      jsonb not null,
@@ -414,7 +403,7 @@ insert into app_settings (key, value) values
 | `fn_vote_count()` | trigger `after insert/delete on report_votes` | `upvote_count = count(*)`; jika `>= app_settings.upvote_threshold` dan status `pending`/`validated` → `eligible`. |
 | `fn_donation_paid()` | trigger `after update of status on donations` | saat `paid`: `raised_amount = sum(paid)`; jika `>= target_amount` → campaign `funded`. |
 | `fn_tranche_guard()` | trigger `before update of status on tranches` | ke `released` hanya jika: `goods_confirmed_at is not null`, ada ≥1 `tranche_receipts`, tranche `seq-1` sudah `released` (atau `seq = 1`), dan `sum(amount) filter (status='released') <= raised_amount`. Selain itu `raise exception`. |
-| `fn_similar_reports(post uuid, query vector, threshold numeric, lim int)` | function `stable` | kembalikan `(report_id, similarity)` untuk laporan lain di pos yang sama, `1 - (embedding <=> query) >= threshold`, urut similarity desc. |
+| `fn_report_candidates(post uuid, text, threshold numeric, lim int)` | function `stable` | kembalikan `(report_id, similarity)` untuk laporan lain di pos yang sama dengan `similarity(body_text, text) >= threshold` (pg_trgm), urut similarity desc. Penyaring murah; verdict akhir dari model bahasa. |
 | `apply_stock_movement(item uuid, delta numeric, reason, ref_report, ref_tranche, note, actor uuid)` | RPC `security definer` | `select ... for update` pada item, update `quantity`, insert `stock_logs` dengan `quantity_after`. Satu-satunya jalan mengubah stok. |
 | `fn_audit(...)` | helper | dipanggil API saat verifikasi org / rilis tranche. |
 
@@ -447,7 +436,6 @@ Prinsip: **deny by default**; API memakai `service_role`, jadi RLS adalah pengam
 | `relief_posts` | lewat view `public_posts` | read semua; write admin | kolom `created_by` tidak diekspos di view |
 | `reports` | — | baca laporan sendiri; baca `eligible`+ (feed publik) | identitas pelapor disamarkan di view |
 | `report_media` | — | baca bila boleh baca report | file tetap butuh signed URL |
-| `report_embeddings` | — | tidak ada akses | hanya API |
 | `report_votes` | — | insert/delete milik sendiri | |
 | `organizations` | lewat view `public_organizations` (nama + status) | anggota baca miliknya | dokumen legal tidak pernah publik |
 | `campaigns`, `budget_items` | lewat view `public_campaigns` | anggota org terkait | |
@@ -495,7 +483,9 @@ Semua di bawah `/api`. Auth: `Authorization: Bearer <supabase_access_token>`; mi
 | `POST` | `/reports/:id/votes` | auth | idempoten (PK) |
 | `DELETE` | `/reports/:id/votes` | auth | |
 | `POST` | `/reports/:id/merge` | org/admin | set `merged_into_id` + status `merged` |
-| `GET` | `/reports/:id/merge-candidates` | org/admin | `fn_similar_reports` |
+| `GET` | `/reports/:id/merge-candidates` | org/admin | `fn_report_candidates` + verdict LLM per kandidat |
+| `POST` | `/reports/:id/classify` | pelapor/org/admin | klasifikasi ulang manual |
+| `POST` | `/reports/:id/merge` | org/admin | set `merged_into_id` |
 | `POST` | `/organizations` | auth | daftar org (status `pending`) |
 | `GET` | `/organizations/me` | auth | |
 | `POST` | `/admin/organizations/:id/verify` | admin | `verified` / `rejected` + audit |
@@ -558,17 +548,45 @@ Pattern `latar-belakang.svg` (motif awan/batik, 600×600, tileable): dipakai seb
 6. Org + verifikasi admin.
 7. RAB + konfirmasi + Midtrans.
 8. Tranche + receipt + stok.
-9. AI classify + embedding + merge.
+9. AI classify + kandidat duplikat + verdict merge.
 10. Demo seed, deploy, README, fallback lokal.
 
 ---
 
-## 10. Risiko Teknis
+## 10. Deployment (aktual, 26 Nov 2026)
+
+| Komponen | Target | URL |
+|---|---|---|
+| Web + API (satu origin) | Cloudflare Pages project `jangkau` | `https://jangkau-c5x.pages.dev` |
+| CI/CD | GitHub Actions `.github/workflows/deploy.yml` (push ke `main`) | repo `ExcWasHere/jangkau` |
+| Database | Supabase project `hfctvwlhviuqnwnlgvnn` | migrasi belum dijalankan (butuh DB password / PAT) |
+| Object storage | Cloudflare R2 | **belum aktif** di akun |
+
+Catatan operasional:
+
+- `*.workers.dev` **tidak bisa dipakai** dari jaringan penguji (TLS ditolak di edge). Karena itu API dipasang di origin `*.pages.dev` lewat `functions/[[path]].ts`, bukan Worker terpisah.
+- Pages memakai *Direct Upload*; integrasi Git bawaan Cloudflare belum bisa diaktifkan (GitHub App belum terpasang di akun). Deploy dari GitHub ditangani Actions, jadi setiap push ke `main` tetap otomatis ter-deploy.
+- Secret runtime (Supabase service role, AI key) diset sebagai env var project Pages; `VITE_*` di-inline saat build sehingga berasal dari GitHub Actions vars.
+
+### Email notifikasi — belum bisa
+
+Cloudflare Email Service/Email Routing **mewajibkan zona (domain) terdaftar di akun**. Akun saat ini tidak punya zona (`GET /zones` → kosong), jadi pengiriman email belum bisa dilakukan sama sekali. Dua jalan keluar:
+
+1. Daftarkan satu domain ke Cloudflare (gratis), lalu pakai Email Service + verified destination address.
+2. Pakai provider lain (mis. Resend free tier) dengan domain uji milik provider.
+
+Sampai salah satu dipilih, notifikasi status laporan/kampanye ditampilkan in-app saja.
+
+---
+
+## 11. Risiko Teknis
 
 | Risiko | Dampak | Mitigasi |
 |---|---|---|
 | Free tier Supabase pause | demo mati | `seed.sql` + fallback lokal (Supabase CLI / Postgres Docker) |
-| Kuota Gemini | klasifikasi gagal | fallback `category='other'`, UI tetap jalan |
+| Kuota/limit AI | klasifikasi gagal | fallback `category='other'`, laporan tetap tersimpan, ada tombol klasifikasi ulang |
 | Midtrans sandbox butuh akun merchant | donasi tidak bisa demo | siapkan sebelum 10 Des; kalau gagal, mode "simulasi pembayaran" berlabel jelas (diizinkan handbook asal ditandai) |
 | GPS spoofing | laporan palsu | batas radius + upvote + review org (sudah di proposal sebagai limitasi) |
-| `service_role` bocor | total | hanya di Worker secret; `.dev.vars` di-ignore; rotasi kunci sebelum submit |
+| `service_role` bocor | total | hanya di secret Pages/Worker; `.dev.vars` di-ignore; rotasi kunci sebelum submit |
+| Subdomain `*.workers.dev` diblokir ISP | API tidak bisa diakses | API dipasang di origin `*.pages.dev` (D3); Worker mandiri tidak dipakai untuk demo |
+| Cloudflare Email butuh zona/domain | notifikasi email tidak terkirim | akun belum punya zona; lihat §11 |

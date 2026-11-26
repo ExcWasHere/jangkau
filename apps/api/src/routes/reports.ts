@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import { createReportSchema, reportListQuerySchema } from "@jangkau/shared";
 
 import type { AppEnv } from "../env.js";
+import { classifyReport, judgeDuplicate } from "../lib/ai.js";
+import { raiseDbError } from "../lib/db-errors.js";
 import { badRequest, forbidden, notFound, unprocessable } from "../lib/errors.js";
 import { adminClient, toPoint } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -11,9 +13,16 @@ export const reportRoutes = new Hono<AppEnv>();
 
 reportRoutes.use("*", requireAuth);
 
+const MERGE_THRESHOLD = 0.35;
+const MERGE_LIMIT = 5;
+
 /**
  * Idempoten terhadap `clientUuid`: retry dari antrean offline mengembalikan
  * baris yang sudah ada (200) alih-alih membuat duplikat.
+ *
+ * Klasifikasi AI berjalan sinkron di sini supaya hasilnya langsung terlihat
+ * di UI. Bila AI lambat atau gagal, laporan tetap tersimpan dengan
+ * kategori "other" — laporan warga tidak boleh gagal karena AI.
  */
 reportRoutes.post("/", async (c) => {
   const user = c.get("user");
@@ -27,12 +36,12 @@ reportRoutes.post("/", async (c) => {
 
   const { data: existing } = await admin
     .from("reports")
-    .select("id")
+    .select("id, category, severity, ai_confidence, status")
     .eq("client_uuid", input.clientUuid)
     .maybeSingle();
 
   if (existing) {
-    return c.json({ id: existing.id, duplicate: true }, 200);
+    return c.json({ ...existing, duplicate: true }, 200);
   }
 
   const { data: post } = await admin
@@ -44,6 +53,9 @@ reportRoutes.post("/", async (c) => {
 
   if (!post) throw notFound("Pos pengungsian tidak ditemukan atau tidak aktif");
 
+  const text = input.bodyText ?? input.transcript ?? "";
+  const classification = input.category ? null : await classifyReport(c.env, text);
+
   const { data: created, error } = await admin
     .from("reports")
     .insert({
@@ -52,20 +64,23 @@ reportRoutes.post("/", async (c) => {
       reporter_id: user.id,
       body_text: input.bodyText ?? null,
       transcript: input.transcript ?? null,
-      category: input.category ?? "other",
-      severity: input.severity,
+      category: input.category ?? classification?.category ?? "other",
+      severity: classification?.severity ?? input.severity,
+      ai_category: classification?.category ?? null,
+      ai_confidence: classification?.confidence ?? null,
+      ai_model: classification ? c.env.AI_MODEL : null,
       headcount_delta: input.headcountDelta ?? null,
       location: toPoint(input.location.lat, input.location.lng),
       location_accuracy_m: input.location.accuracyM ?? null,
       captured_at: input.capturedAt,
     })
-    .select("id, geofence_ok, status")
+    .select("id, geofence_ok, status, category, severity, ai_confidence")
     .single();
 
-  if (error) throw error;
+  if (error) raiseDbError(error);
 
-  // Geofence dihitung trigger; laporan di luar radius langsung ditolak
-  // agar tidak masuk feed. Baris tetap disimpan sebagai jejak audit.
+  // Geofence dihitung trigger; laporan di luar radius ditolak agar tidak
+  // masuk feed. Baris tetap disimpan sebagai jejak audit.
   if (!created.geofence_ok) {
     await admin
       .from("reports")
@@ -89,10 +104,19 @@ reportRoutes.post("/", async (c) => {
         size_bytes: 1,
       })),
     );
-    if (mediaError) throw mediaError;
+    if (mediaError) raiseDbError(mediaError);
   }
 
-  return c.json({ id: created.id, status: created.status, duplicate: false }, 201);
+  return c.json(
+    {
+      ...created,
+      duplicate: false,
+      ai: classification
+        ? { summary: classification.summary, items: classification.items }
+        : null,
+    },
+    201,
+  );
 });
 
 reportRoutes.get("/", async (c) => {
@@ -106,7 +130,9 @@ reportRoutes.get("/", async (c) => {
 
   let query = admin
     .from("reports")
-    .select("id, post_id, body_text, category, severity, status, upvote_count, captured_at")
+    .select(
+      "id, post_id, body_text, category, severity, status, upvote_count, captured_at, ai_confidence",
+    )
     .order("captured_at", { ascending: false })
     .limit(limit);
 
@@ -114,9 +140,130 @@ reportRoutes.get("/", async (c) => {
   if (status) query = query.eq("status", status);
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) raiseDbError(error);
 
   return c.json({ items: data ?? [] });
+});
+
+/** Klasifikasi ulang manual (mis. setelah model diperbaiki). */
+reportRoutes.post("/:id/classify", async (c) => {
+  const user = c.get("user");
+  const admin = adminClient(c.env);
+  const id = c.req.param("id");
+
+  const { data: report } = await admin
+    .from("reports")
+    .select("id, reporter_id, body_text, transcript")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!report) throw notFound("Laporan tidak ditemukan");
+  if (report.reporter_id !== user.id && user.role !== "admin" && !user.organizationId) {
+    throw forbidden();
+  }
+
+  const classification = await classifyReport(
+    c.env,
+    report.body_text ?? report.transcript ?? "",
+  );
+  if (!classification) {
+    return c.json({ error: { code: "ai_unavailable", message: "AI tidak tersedia" } }, 503);
+  }
+
+  const { data, error } = await admin
+    .from("reports")
+    .update({
+      category: classification.category,
+      severity: classification.severity,
+      ai_category: classification.category,
+      ai_confidence: classification.confidence,
+      ai_model: c.env.AI_MODEL,
+    })
+    .eq("id", id)
+    .select("id, category, severity, ai_confidence")
+    .maybeSingle();
+
+  if (error) raiseDbError(error);
+  return c.json({ ...data, summary: classification.summary, items: classification.items });
+});
+
+/**
+ * Kandidat duplikat: trigram menyaring kandidat murah, model bahasa
+ * memberi verdict. Hanya organisasi terverifikasi/admin yang melihat ini
+ * karena keputusan merge mengubah data laporan warga.
+ */
+reportRoutes.get("/:id/merge-candidates", async (c) => {
+  const user = c.get("user");
+  if (user.role !== "admin" && !user.organizationId) {
+    throw forbidden("Hanya admin atau organisasi terverifikasi");
+  }
+
+  const admin = adminClient(c.env);
+  const id = c.req.param("id");
+
+  const { data: report } = await admin
+    .from("reports")
+    .select("id, post_id, body_text, transcript, category")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!report) throw notFound("Laporan tidak ditemukan");
+
+  const text = report.body_text ?? report.transcript ?? "";
+  const { data: candidates, error } = await admin.rpc("fn_report_candidates", {
+    p_post_id: report.post_id,
+    p_text: text,
+    p_threshold: MERGE_THRESHOLD,
+    p_limit: MERGE_LIMIT,
+  });
+  if (error) raiseDbError(error);
+
+  const rows = (candidates ?? []) as Array<{ report_id: string; similarity: number }>;
+  const judged = await Promise.all(
+    rows.map(async (candidate) => {
+      const { data: other } = await admin
+        .from("reports")
+        .select("body_text, transcript")
+        .eq("id", candidate.report_id)
+        .maybeSingle();
+      const otherText = other?.body_text ?? other?.transcript ?? "";
+      const verdict = await judgeDuplicate(c.env, text, otherText);
+      return {
+        reportId: candidate.report_id,
+        similarity: candidate.similarity,
+        duplicate: verdict?.duplicate ?? null,
+        confidence: verdict?.confidence ?? null,
+        reason: verdict?.reason ?? null,
+      };
+    }),
+  );
+
+  return c.json({ items: judged });
+});
+
+reportRoutes.post("/:id/merge", async (c) => {
+  const user = c.get("user");
+  if (user.role !== "admin" && !user.organizationId) {
+    throw forbidden("Hanya admin atau organisasi terverifikasi");
+  }
+
+  const body = (await c.req.json()) as { intoReportId?: string };
+  const into = body.intoReportId;
+  if (!into || into === c.req.param("id")) {
+    throw badRequest("invalid_target", "intoReportId wajib dan harus berbeda");
+  }
+
+  const admin = adminClient(c.env);
+  const { data, error } = await admin
+    .from("reports")
+    .update({ status: "merged", merged_into_id: into })
+    .eq("id", c.req.param("id"))
+    .select("id, status, merged_into_id")
+    .maybeSingle();
+
+  if (error) raiseDbError(error);
+  if (!data) throw notFound("Laporan tidak ditemukan");
+  return c.json(data);
 });
 
 reportRoutes.post("/:id/votes", async (c) => {
@@ -129,7 +276,7 @@ reportRoutes.post("/:id/votes", async (c) => {
     .insert({ report_id: reportId, profile_id: user.id });
 
   // 23505 = sudah pernah vote; idempoten.
-  if (error && error.code !== "23505") throw error;
+  if (error && error.code !== "23505") raiseDbError(error);
 
   const { data } = await admin
     .from("reports")
@@ -152,7 +299,7 @@ reportRoutes.delete("/:id/votes", async (c) => {
     .eq("report_id", reportId)
     .eq("profile_id", user.id);
 
-  if (error) throw error;
+  if (error) raiseDbError(error);
 
   const { data } = await admin
     .from("reports")
@@ -178,7 +325,7 @@ reportRoutes.post("/:id/reject", async (c) => {
     .select("id, status")
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) raiseDbError(error);
   if (!data) throw notFound("Laporan tidak ditemukan");
   return c.json(data);
 });

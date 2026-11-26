@@ -6,14 +6,13 @@
   "scripts": {
     "dev": "react-router dev --port 5173",
     "build": "react-router build",
-    "start": "wrangler dev",
-    "preview": "bun run build && vite preview",
-    "deploy": "bun run build && wrangler deploy",
-    "cf-typegen": "wrangler types",
-    "typecheck": "bun run cf-typegen && react-router typegen && tsc -b"
+    "typecheck": "react-router typegen && react-router build && tsc -b",
+    "deploy": "bun run build && wrangler pages deploy"
   },
   "dependencies": {
+    "@jangkau/api": "workspace:*",
     "@jangkau/shared": "workspace:*",
+    "@react-router/cloudflare": "7.18.7",
     "@supabase/supabase-js": "2.119.2",
     "idb": "8.0.3",
     "isbot": "5.2.4",
@@ -23,7 +22,6 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.70.2",
     "@cloudflare/workers-types": "^4.20250923.0",
     "@react-router/dev": "7.18.7",
     "@tailwindcss/vite": "4.3.5",
