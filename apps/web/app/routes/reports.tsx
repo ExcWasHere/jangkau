@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { NEED_CATEGORY_LABELS, REPORT_STATUS_LABELS } from "@jangkau/shared";
 import type { NeedCategory, ReportStatus } from "@jangkau/shared";
 
-import { AppShell } from "../components/app-shell";
-import { apiFetch, ApiError } from "../lib/api";
-import { useSession } from "../lib/session";
+import { AppShell } from "~/shared/layout/app-shell";
+import { apiFetch, ApiError } from "~/shared/api/client";
+import { useSession } from "~/features/auth/session";
 
 type Report = {
   id: string;

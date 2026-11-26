@@ -1,4 +1,4 @@
-import { publicEnv } from "./env";
+import { publicEnv } from "~/shared/lib/env";
 
 type ApiErrorBody = { error?: { code?: string; message?: string } };
 

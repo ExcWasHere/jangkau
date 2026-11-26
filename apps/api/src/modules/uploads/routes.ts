@@ -2,11 +2,11 @@ import { Hono } from "hono";
 
 import { presignSchema, isAllowedContentType } from "@jangkau/shared";
 
-import type { AppEnv } from "../env.js";
-import { badRequest } from "../lib/errors.js";
-import { presignPut } from "../lib/r2.js";
+import type { AppEnv } from "../../env.js";
+import { badRequest } from "../../shared/errors.js";
+import { presignPut } from "../../shared/r2.js";
 
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "../../shared/middleware/auth.js";
 
 const EXT_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",

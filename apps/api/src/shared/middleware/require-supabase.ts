@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import type { AppEnv } from "../env.js";
+import type { AppEnv } from "../../env.js";
 
 /**
  * Endpoint yang butuh database membalas 503 dengan pesan jelas selama

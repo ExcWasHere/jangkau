@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { NEED_CATEGORIES, NEED_CATEGORY_LABELS, SEVERITY_LEVELS } from "@jangkau/shared";
 
-import { AppShell } from "../components/app-shell";
-import { apiFetch, ApiError } from "../lib/api";
+import { AppShell } from "~/shared/layout/app-shell";
+import { apiFetch, ApiError } from "~/shared/api/client";
 import {
   cacheGet,
   cacheSet,
@@ -14,8 +14,8 @@ import {
   updateOutbox,
   type OutboxItem,
   type OutboxMedia,
-} from "../lib/outbox";
-import { useSession } from "../lib/session";
+} from "~/features/reports/outbox";
+import { useSession } from "~/features/auth/session";
 
 type Post = { id: string; name: string; regency: string | null; headcount: number };
 

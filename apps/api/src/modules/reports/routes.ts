@@ -2,14 +2,14 @@ import { Hono } from "hono";
 
 import { createReportSchema, reportListQuerySchema } from "@jangkau/shared";
 
-import type { AppEnv } from "../env.js";
-import { classifyReport, judgeDuplicate } from "../lib/ai.js";
-import { raiseDbError } from "../lib/db-errors.js";
-import { distanceMeters } from "../lib/geo.js";
-import { presignGet } from "../lib/r2.js";
-import { badRequest, forbidden, notFound, unprocessable } from "../lib/errors.js";
-import { adminClient, toPoint } from "../lib/supabase.js";
-import { requireAuth } from "../middleware/auth.js";
+import type { AppEnv } from "../../env.js";
+import { classifyReport, judgeDuplicate } from "../../shared/ai.js";
+import { raiseDbError } from "../../shared/db-errors.js";
+import { distanceMeters } from "../../shared/geo.js";
+import { presignGet } from "../../shared/r2.js";
+import { badRequest, forbidden, notFound, unprocessable } from "../../shared/errors.js";
+import { adminClient, toPoint } from "../../shared/supabase.js";
+import { requireAuth } from "../../shared/middleware/auth.js";
 
 export const reportRoutes = new Hono<AppEnv>();
 
