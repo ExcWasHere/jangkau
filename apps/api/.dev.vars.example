@@ -21,3 +21,7 @@ AI_API_KEY=""
 AI_MODEL=""
 
 APP_BASE_URL="http://localhost:5173"
+
+# Origin tambahan yang diizinkan CORS, dipisah koma (opsional).
+# URL Pages produksi sebaiknya diisi juga di APP_BASE_URL.
+ALLOWED_ORIGINS=""

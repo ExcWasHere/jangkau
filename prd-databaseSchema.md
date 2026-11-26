@@ -27,8 +27,8 @@ Yang **tidak** dibangun (sesuai §3.2 proposal): pencairan uang nyata, aplikasi 
 | # | Keputusan | Alasan | Konsekuensi |
 |---|---|---|---|
 | D1 | **bun workspaces** monorepo (`apps/*`, `packages/*`), TypeScript 5.9 | Satu lockfile, install cepat, `bun run --filter` cukup untuk 2 app | Anggota tim perlu install Bun; CI/deploy tetap memakai perintah `bunx` |
-| D2 | `apps/web` = **React Router 7.18 framework mode, SSR lewat Cloudflare Pages Functions** (`functions/[[path]].ts`) | Proposal menyebut RRv7 → dipin ke 7.x, bukan v8. SSR memberi HTML siap-indeks untuk halaman pos/kampanye | Service worker wajib menyimpan dokumen navigasi agar rute tetap terbuka saat offline; antrean laporan tetap murni client (IndexedDB) |
-| D3 | `apps/api` = **Hono 4**, dipasang di origin yang sama dengan web lewat Pages Functions (`/api/*`) | Satu deploy, satu origin → tidak ada CORS dan tidak butuh domain sendiri. `apps/api/src/index.ts` tetap ada bila nanti perlu Worker terpisah | Tidak ada Node API (Buffer, fs); pakai Web API. Semua secret API hidup di project Pages, bukan di Worker terpisah |
+| D2 | `apps/web` = **React Router 7.18 framework mode, SSR lewat Cloudflare Pages** (`functions/[[path]].ts`) | Proposal menyebut RRv7 → dipin ke 7.x, bukan v8. Pages punya integrasi Git native sehingga push = deploy | Service worker wajib menyimpan dokumen navigasi agar rute tetap terbuka saat offline; antrean laporan tetap murni client (IndexedDB) |
+| D3 | `apps/api` = **Hono 4 di Cloudflare Workers terpisah** (`jangkau-api`) | Pemisahan tegas: Pages hanya menyajikan UI, Worker memegang aturan bisnis & service_role. Bisa dideploy ulang tanpa menyentuh frontend | Dua origin → CORS wajib. Frontend memanggil `VITE_API_BASE_URL` (mutlak), bukan path relatif |
 | D4 | Frontend **hanya** bicara ke Hono API (kecuali endpoint Auth Supabase) | Satu titik otorisasi; RLS jadi lapisan kedua, bukan satu-satunya | Semua aturan bisnis harus ada di API, bukan di client |
 | D5 | API memakai **service_role key** (secret Worker) setelah memverifikasi JWT user | Hono perlu menulis lintas tabel (trigger campaign, tranche, stok) | `service_role` **tidak boleh** pernah sampai ke browser; RLS tetap `deny by default` |
 | D6 | DB = **Supabase Postgres + PostGIS + pg_trgm** | Geofence radius butuh PostGIS; dedupe laporan memakai trigram sebagai penyaring kandidat | Tidak ada model embedding di provider AI yang dipakai → tidak ada kolom vektor, tidak ada biaya embedding |
@@ -555,18 +555,19 @@ Pattern `latar-belakang.svg` (motif awan/batik, 600×600, tileable): dipakai seb
 
 ## 10. Deployment (aktual, 26 Nov 2026)
 
-| Komponen | Target | URL |
+| Komponen | Target | Root repo |
 |---|---|---|
-| Web + API (satu origin) | Cloudflare Pages project `jangkau` | `https://jangkau-c5x.pages.dev` |
-| CI/CD | GitHub Actions `.github/workflows/deploy.yml` (push ke `main`) | repo `ExcWasHere/jangkau` |
+| Frontend | Cloudflare Pages project (Git: `ExcWasHere/jangkau`) | **`apps/web`** |
+| Backend | Cloudflare Worker `jangkau-api` | **`apps/api`** |
+| CI/CD | Integrasi Git bawaan Cloudflare Pages (push → build → deploy) | repo `ExcWasHere/jangkau` |
 | Database | Supabase project `hfctvwlhviuqnwnlgvnn` (Tokyo) | migrasi + seed demo sudah diterapkan lewat Session pooler |
 | Object storage | Cloudflare R2 bucket `jangkau-media` (APAC) | bucket + CORS siap; menunggu Access Key dari dashboard |
 
 Catatan operasional:
 
-- `*.workers.dev` **tidak bisa dipakai** dari jaringan penguji (TLS ditolak di edge). Karena itu API dipasang di origin `*.pages.dev` lewat `functions/[[path]].ts`, bukan Worker terpisah.
-- Pages memakai *Direct Upload*; integrasi Git bawaan Cloudflare belum bisa diaktifkan (GitHub App belum terpasang di akun). Deploy dari GitHub ditangani Actions, jadi setiap push ke `main` tetap otomatis ter-deploy.
-- Secret runtime (Supabase service role, AI key) diset sebagai env var project Pages; `VITE_*` di-inline saat build sehingga berasal dari GitHub Actions vars.
+- Kegagalan TLS `*.workers.dev` sebelumnya terjadi karena akun **belum punya subdomain** workers.dev. Setelah subdomain `jangkau` didaftarkan, handshake normal (diverifikasi: `https://jangkau.jangkau.workers.dev` menjawab HTTP, bukan error SSL).
+- CORS di Worker mengizinkan `APP_BASE_URL`, `ALLOWED_ORIGINS` (dipisah koma), `http://localhost:*`, dan `*.pages.dev`. Semua endpoint data tetap butuh Bearer token.
+- `VITE_*` di-inline saat build → wajib diisi di environment Pages (Production **dan** Preview), bukan di runtime.
 
 ### Email notifikasi — belum bisa
 

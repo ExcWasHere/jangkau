@@ -23,6 +23,8 @@ export type Bindings = {
   AI_MODEL: string;
 
   APP_BASE_URL: string;
+  /** Daftar origin tambahan, dipisah koma (mis. preview Pages). */
+  ALLOWED_ORIGINS?: string;
 };
 
 export type AppRole = "resident" | "organization" | "admin";

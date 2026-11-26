@@ -10,7 +10,6 @@
     "deploy": "bun run build && wrangler pages deploy build/client --project-name jangkau --branch main"
   },
   "dependencies": {
-    "@jangkau/api": "workspace:*",
     "@jangkau/shared": "workspace:*",
     "@react-router/cloudflare": "7.18.7",
     "@supabase/supabase-js": "2.119.2",

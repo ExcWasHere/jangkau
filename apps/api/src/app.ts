@@ -17,12 +17,28 @@ const app = new Hono<AppEnv>();
 app.use("*", logger());
 app.use("*", secureHeaders());
 
+/**
+ * Frontend (Cloudflare Pages) dan API (Worker) kini beda origin, jadi CORS
+ * harus eksplisit. Origin diambil dari `ALLOWED_ORIGINS` (dipisah koma) dan
+ * `APP_BASE_URL`. Preview deployment Pages punya subdomain acak, jadi
+ * `*.pages.dev` diizinkan — semua data tetap butuh Bearer token.
+ */
 app.use(
   "/api/*",
   cors({
     origin: (origin, c) => {
-      const allowed = [c.env.APP_BASE_URL, "http://localhost:5173"];
-      return allowed.includes(origin) ? origin : null;
+      if (!origin) return null;
+
+      const explicit = [c.env.APP_BASE_URL, ...(c.env.ALLOWED_ORIGINS ?? "").split(",")]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value));
+
+      if (explicit.includes(origin)) return origin;
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return origin;
+      }
+      if (origin.endsWith(".pages.dev")) return origin;
+      return null;
     },
     allowHeaders: ["Authorization", "Content-Type"],
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],

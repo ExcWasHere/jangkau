@@ -3,12 +3,64 @@
 Platform pelaporan kebutuhan, penggalangan dana, dan pemantauan stok pos pengungsian.
 Tim **Isin Aq Yank** — Politeknik Negeri Malang, STACK 2026 (GDGoC ITB), Case 2.
 
-Monorepo berisi aplikasi web (React Router 7, SSR lewat Cloudflare Pages Functions) dan
-API (Hono) yang dipasang di origin yang sama (`/api/*`), dengan Supabase sebagai database
-dan Cloudflare R2 sebagai object storage.
+Monorepo Bun dengan dua aplikasi yang **dideploy terpisah**:
 
-- Produksi: <https://jangkau-c5x.pages.dev>
-- CI/CD: GitHub Actions (`.github/workflows/deploy.yml`) — push ke `main` langsung deploy.
+| Bagian | Root repo | Target deploy | Perintah build |
+|---|---|---|---|
+| Frontend (React Router 7, SSR) | `apps/web` | Cloudflare Pages | `bun run build` → `build/client` |
+| Backend (Hono) | `apps/api` | Cloudflare Workers | `bunx wrangler deploy` |
+| Skema database | `packages/db` | Supabase | `psql -f migrations/0001_init.sql` |
+| Kontrak bersama | `packages/shared` | — (dipakai kedua app) | — |
+
+---
+
+## Setup Pages (frontend)
+
+Di dashboard Cloudflare → Workers & Pages → Create → Pages → Connect to Git:
+
+| Setting | Nilai |
+|---|---|
+| Repository | `ExcWasHere/jangkau` |
+| Production branch | `main` (atau `development` untuk staging) |
+| Framework preset | `None` / `React Router` |
+| **Root directory** | **`apps/web`** |
+| Build command | `bun run build` |
+| Build output directory | `build/client` |
+
+Environment variables (Production **dan** Preview — `VITE_*` di-inline saat build):
+
+| Variable | Nilai |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://hfctvwlhviuqnwnlgvnn.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | anon/publishable key Supabase |
+| `VITE_API_BASE_URL` | `https://jangkau-api.<subdomain-akun>.workers.dev/api/v1` |
+
+`apps/web/functions/[[path]].ts` adalah satu-satunya entry SSR; tidak ada API di dalamnya.
+
+## Setup Worker (backend)
+
+```bash
+cd apps/api
+bunx wrangler deploy          # nama Worker: jangkau-api
+```
+
+Secret (sekali saja, tidak masuk repo):
+
+```bash
+cd apps/api
+bunx wrangler secret put SUPABASE_URL
+bunx wrangler secret put SUPABASE_ANON_KEY
+bunx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+bunx wrangler secret put AI_BASE_URL
+bunx wrangler secret put AI_API_KEY
+bunx wrangler secret put AI_MODEL
+```
+
+Variable non-rahasia ada di `apps/api/wrangler.jsonc` (`APP_BASE_URL`, `ALLOWED_ORIGINS`,
+`MIDTRANS_IS_PRODUCTION`). Isi `APP_BASE_URL` dengan URL Pages produksi supaya CORS
+mengizinkannya; `*.pages.dev` dan `localhost:*` sudah diizinkan otomatis.
+
+Cek: `curl https://jangkau-api.<subdomain>.workers.dev/api/v1/health`.
 
 ---
 
@@ -16,13 +68,17 @@ dan Cloudflare R2 sebagai object storage.
 
 ```
 apps/
-  web/    React Router 7 (SSR) — UI, offline queue, Supabase Auth
-          functions/[[path]].ts = satu-satunya entry: /api/* → Hono, sisanya SSR
-  api/    Hono — aturan bisnis, geofence, RAB, donasi, tranche, stok, AI
-          src/app.ts = aplikasi Hono; src/index.ts = entry Worker mandiri (opsional)
+  web/                    React Router 7 (SSR di Pages) + Tailwind v4
+    app/                  rute, komponen, lib (api, outbox, session)
+    functions/[[path]].ts entry Pages Functions
+  api/                    Hono 4 (Cloudflare Workers)
+    src/app.ts            aplikasi Hono
+    src/index.ts          entry Worker
+    src/routes/           me, posts, reports, uploads
+    src/lib/              supabase, ai, r2, errors, geo
 packages/
-  shared/ zod schema + enum + label (dipakai web & api)
-  db/     migrasi SQL, seed, tipe hasil generate
+  shared/                 zod schema + enum + label (web & api)
+  db/                     migrasi SQL, seed, tipe hasil generate
 ```
 
 Keputusan arsitektur dan skema database lengkap ada di [`prd-databaseSchema.md`](./prd-databaseSchema.md).
@@ -33,41 +89,41 @@ Dokumen itu sumber kebenaran: ubah dokumen dulu, baru kode.
 ## Prasyarat
 
 - [Bun](https://bun.sh) 1.3+
-- Node 22+ (untuk tooling yang masih butuh Node)
-- Akun: Supabase, Cloudflare (Workers + R2), Midtrans sandbox, Google AI Studio (Gemini)
+- Akun: Supabase, Cloudflare (Pages + Workers + R2), inferhub (AI)
 
 ---
 
-## Setup
+## Development lokal
 
 ```bash
 bun install
-```
 
-### 1. Environment
-
-```bash
 cp apps/web/.env.example apps/web/.env
 cp apps/api/.dev.vars.example apps/api/.dev.vars
 ```
 
-Isi nilainya. **Jangan commit** `.env` atau `.dev.vars` — sudah masuk `.gitignore`.
+Isi nilainya. **Jangan commit** `.env` atau `.dev.vars` — sudah di `.gitignore`.
 
-| File | Variabel | Sumber |
-|---|---|---|
-| `apps/web/.env` | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
-| `apps/web/.env` | `VITE_API_BASE_URL` | `http://localhost:8787/api/v1` saat lokal |
-| `apps/api/.dev.vars` | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | idem |
-| `apps/api/.dev.vars` | `R2_*` | Cloudflare → R2 → Manage API Tokens |
-| `apps/api/.dev.vars` | `MIDTRANS_*` | dashboard.midtrans.com → Access Keys (sandbox) |
-| `apps/api/.dev.vars` | `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | inferhub (`https://api.inferhub.dev/v1`, model `ag/gemini-3.8-flash-high`) |
+```bash
+bun run dev          # web :5173 + api :8787 bersamaan
+bun run dev:web
+bun run dev:api
+```
 
-`SUPABASE_SERVICE_ROLE_KEY` hanya boleh ada di Worker. Kunci itu melewati RLS.
+Cek API: `curl http://localhost:8787/api/v1/health`.
 
-### 2. Database
+Menjalankan Pages lokal persis seperti produksi (SSR + `functions/`):
 
-Migrasi diterapkan lewat `psql` (Supabase CLI butuh Docker, yang belum tentu ada).
-Ambil connection string dari Supabase → Connect → **Session pooler**:
+```bash
+cd apps/web && bun run build && bunx wrangler pages dev build/client --port 8790
+```
+
+---
+
+## Database
+
+Migrasi diterapkan lewat `psql` (Supabase CLI butuh Docker). Ambil connection string
+dari Supabase → Connect → **Session pooler**:
 
 ```bash
 export PGPASSWORD='<password-db>'
@@ -80,31 +136,13 @@ psql "$PGURL" -v ON_ERROR_STOP=1 -f packages/db/seeds/demo.sql   # opsional, dat
 Catatan: `db.<ref>.supabase.co:5432` tidak punya record A (IPv4) — pakai pooler.
 Ekstensi `postgis`, `pg_trgm`, `pgcrypto` dibuat oleh migrasi itu sendiri.
 
-Akun demo (dibuat lewat Admin API, password `Jangkau#2026`):
+Akun demo (password `Jangkau#2026`):
 
 | Email | Peran |
 |---|---|
 | `demo.pelapor@jangkau.test` | pelapor |
 | `demo.admin@jangkau.test` | admin |
 | `demo.org@jangkau.test` | organisasi terverifikasi (Yayasan Peduli Malang) |
-
-### 3. Jalankan
-
-```bash
-bun run dev        # web :5173 + api :8787
-bun run dev:web
-bun run dev:api
-```
-
-Cek API: `curl http://localhost:8787/api/v1/health`.
-
-Web dan API juga bisa dijalankan sebagai satu origin, persis seperti produksi:
-
-```bash
-cd apps/web
-bun run build
-bunx wrangler pages dev build/client --port 8789   # /api/* ikut aktif di sini
-```
 
 ---
 
@@ -114,20 +152,9 @@ bunx wrangler pages dev build/client --port 8789   # /api/* ikut aktif di sini
 |---|---|
 | `bun run dev` | web + api bersamaan |
 | `bun run typecheck` | tsc di semua workspace |
-| `bun run build` | build web + dry-run deploy api |
-| `bun run deploy` | deploy web ke Cloudflare Pages (API ikut di dalamnya) |
-| `bun run db:push` | terapkan migrasi |
+| `bun run build` | build web (Pages) |
+| `bun run db:push` | terapkan migrasi (butuh Supabase CLI) |
 | `bun run db:types` | generate tipe DB |
-
-Deploy dari mesin lokal butuh `CLOUDFLARE_API_TOKEN` dan `CLOUDFLARE_ACCOUNT_ID`.
-Secret runtime disimpan sebagai environment variable project Pages (bukan di repo):
-
-```bash
-cd apps/web && bunx wrangler pages deploy build/client --project-name jangkau --branch main
-```
-
-`VITE_*` di-inline saat build, jadi harus tersedia di environment build (GitHub Actions
-memakai repository *variables*, lihat `.github/workflows/deploy.yml`).
 
 ---
 
@@ -139,20 +166,14 @@ Lapor (offline-first) → Klasifikasi & merge AI → Geofence + upvote
 → Pencairan bertahap (bukti + konfirmasi barang) → Stok pos ter-update
 ```
 
-Status yang sudah berjalan di repo ini: landing page, auth (Supabase), health API,
-skema database lengkap dengan trigger geofence/upvote/tranche dan RLS, presign upload R2,
-endpoint laporan idempoten.
-
----
-
 ## Status implementasi
 
 | Bagian | Status |
 |---|---|
 | Landing, auth (Supabase), halaman lapor + antrean offline | jalan |
-| API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan setelah migrasi DB |
-| Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | **sudah diterapkan** + seed demo |
-| Upload R2 | bucket `jangkau-media` + CORS siap; **menunggu R2 Access Key** dari dashboard (kredensial S3 tidak bisa dibuat lewat API) |
+| API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan |
+| Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | sudah diterapkan + seed demo |
+| Upload R2 | bucket `jangkau-media` + CORS siap; **menunggu Access Key** dari dashboard |
 | Midtrans, tranche, stok, peta | belum |
 | Notifikasi email | **terblokir**: Cloudflare Email butuh domain/zona yang belum ada |
 
@@ -169,4 +190,5 @@ endpoint laporan idempoten.
 
 Pengembangan dibantu AI coding assistant (Claude) untuk scaffolding, penulisan kode,
 dan review. Keputusan arsitektur, skema, dan verifikasi dilakukan oleh tim.
-Gemini API adalah komponen produk (klasifikasi & embedding), bukan alat bantu coding.
+Model AI produk (klasifikasi laporan, verdict duplikat) dipanggil lewat endpoint
+kompatibel OpenAI di inferhub, bukan alat bantu coding.

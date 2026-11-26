@@ -8,6 +8,7 @@
   "upload_source_maps": true,
   "vars": {
     "APP_BASE_URL": "http://localhost:5173",
+    "ALLOWED_ORIGINS": "",
     "MIDTRANS_IS_PRODUCTION": "false"
   },
   "dev": {
