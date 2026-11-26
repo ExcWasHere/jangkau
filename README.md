@@ -171,6 +171,19 @@ Akun demo (password `Jangkau#2026`):
 
 ---
 
+## Halaman
+
+| Rute | Akses |
+|---|---|
+| `/` | publik |
+| `/pos/:postId` | publik (SSR) |
+| `/laporan/:reportId` | publik untuk laporan tervalidasi |
+| `/masuk`, `/daftar` | publik |
+| `/lapor`, `/laporan`, `/konfirmasi-rab` | pelapor |
+| `/laporan-masuk`, `/stok`, `/organisasi` | organisasi terverifikasi |
+| `/kampanye/:id` | pelapor terkait, organisasi, admin |
+| `/admin/organisasi` | admin |
+
 ## Alur inti
 
 ```
@@ -184,10 +197,16 @@ Lapor (offline-first) → Klasifikasi & merge AI → Geofence + upvote
 | Bagian | Status |
 |---|---|
 | Landing, auth (Supabase), halaman lapor + antrean offline | jalan |
+| Detail pos (`/pos/:id`) + detail laporan (`/laporan/:id`) dengan upvote | jalan |
+| Organisasi: pendaftaran, status verifikasi, verifikasi admin + audit log | jalan |
+| RAB builder, konfirmasi pelapor, donasi simulasi, pencairan bertahap | jalan |
+| Stok per pos + riwayat pergerakan | jalan |
+| Kandidat duplikat (trigram + verdict model) dan penggabungan | jalan |
 | API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan |
 | Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | sudah diterapkan + seed demo |
 | Upload R2 | **jalan**: presigned PUT/GET, foto laporan tampil di daftar |
-| Midtrans, tranche, stok, peta | belum |
+| Midtrans sungguhan | belum — donasi berjalan dalam mode simulasi berlabel |
+| Peta interaktif | belum — detail pos memakai diagram radius SVG |
 | Notifikasi email | **terblokir**: Cloudflare Email butuh domain/zona yang belum ada |
 
 ## Keterbatasan yang disengaja
