@@ -151,8 +151,8 @@ endpoint laporan idempoten.
 |---|---|
 | Landing, auth (Supabase), halaman lapor + antrean offline | jalan |
 | API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan setelah migrasi DB |
-| Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | tertulis, **belum diterapkan** ke project Supabase |
-| Upload R2 | belum aktif — R2 belum diaktifkan di akun Cloudflare |
+| Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | **sudah diterapkan** + seed demo |
+| Upload R2 | bucket `jangkau-media` + CORS siap; **menunggu R2 Access Key** dari dashboard (kredensial S3 tidak bisa dibuat lewat API) |
 | Midtrans, tranche, stok, peta | belum |
 | Notifikasi email | **terblokir**: Cloudflare Email butuh domain/zona yang belum ada |
 

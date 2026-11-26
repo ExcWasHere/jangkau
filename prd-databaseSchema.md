@@ -559,8 +559,8 @@ Pattern `latar-belakang.svg` (motif awan/batik, 600×600, tileable): dipakai seb
 |---|---|---|
 | Web + API (satu origin) | Cloudflare Pages project `jangkau` | `https://jangkau-c5x.pages.dev` |
 | CI/CD | GitHub Actions `.github/workflows/deploy.yml` (push ke `main`) | repo `ExcWasHere/jangkau` |
-| Database | Supabase project `hfctvwlhviuqnwnlgvnn` | migrasi belum dijalankan (butuh DB password / PAT) |
-| Object storage | Cloudflare R2 | **belum aktif** di akun |
+| Database | Supabase project `hfctvwlhviuqnwnlgvnn` (Tokyo) | migrasi + seed demo sudah diterapkan lewat Session pooler |
+| Object storage | Cloudflare R2 bucket `jangkau-media` (APAC) | bucket + CORS siap; menunggu Access Key dari dashboard |
 
 Catatan operasional:
 
