@@ -5,6 +5,7 @@ import { createReportSchema, reportListQuerySchema } from "@jangkau/shared";
 import type { AppEnv } from "../env.js";
 import { classifyReport, judgeDuplicate } from "../lib/ai.js";
 import { raiseDbError } from "../lib/db-errors.js";
+import { distanceMeters } from "../lib/geo.js";
 import { badRequest, forbidden, notFound, unprocessable } from "../lib/errors.js";
 import { adminClient, toPoint } from "../lib/supabase.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -45,13 +46,24 @@ reportRoutes.post("/", async (c) => {
   }
 
   const { data: post } = await admin
-    .from("relief_posts")
-    .select("id")
+    .from("public_posts")
+    .select("id, lat, lng, radius_m, status")
     .eq("id", input.postId)
     .eq("status", "active")
     .maybeSingle();
 
   if (!post) throw notFound("Pos pengungsian tidak ditemukan atau tidak aktif");
+
+  // Pra-cek radius sebelum memanggil AI: laporan di luar radius tidak
+  // perlu biaya klasifikasi. Trigger PostGIS tetap menghitung ulang.
+  const distance = distanceMeters(input.location, { lat: post.lat, lng: post.lng });
+  if (distance > post.radius_m) {
+    throw unprocessable(
+      "outside_radius",
+      `Lokasi perangkat ${Math.round(distance)} m dari pos, di luar radius ${post.radius_m} m`,
+      { postId: input.postId, distanceM: Math.round(distance), radiusM: post.radius_m },
+    );
+  }
 
   const text = input.bodyText ?? input.transcript ?? "";
   const classification = input.category ? null : await classifyReport(c.env, text);

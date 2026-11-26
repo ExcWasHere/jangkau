@@ -40,3 +40,9 @@ Thumbs.db
 *.log
 .logs/
 .req*.json
+
+# scratch lokal (jangan pernah commit)
+.tok
+.mig.log
+.logs/
+.req*.json

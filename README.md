@@ -66,16 +66,27 @@ Isi nilainya. **Jangan commit** `.env` atau `.dev.vars` — sudah masuk `.gitign
 
 ### 2. Database
 
-Jalankan migrasi lewat Supabase CLI (link project dulu):
+Migrasi diterapkan lewat `psql` (Supabase CLI butuh Docker, yang belum tentu ada).
+Ambil connection string dari Supabase → Connect → **Session pooler**:
 
 ```bash
-supabase link --project-ref <ref>
-bun run db:push      # menerapkan packages/db/migrations/*.sql
-bun run db:types     # generate tipe ke packages/db/src/database.types.ts
+export PGPASSWORD='<password-db>'
+export PGURL="postgresql://postgres.<project-ref>@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require"
+
+psql "$PGURL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0001_init.sql
+psql "$PGURL" -v ON_ERROR_STOP=1 -f packages/db/seeds/demo.sql   # opsional, data sintetis
 ```
 
-Di dashboard Supabase, aktifkan ekstensi `postgis`, `vector`, dan `pgcrypto`
-(migrasi sudah memanggil `create extension`, butuh role owner).
+Catatan: `db.<ref>.supabase.co:5432` tidak punya record A (IPv4) — pakai pooler.
+Ekstensi `postgis`, `pg_trgm`, `pgcrypto` dibuat oleh migrasi itu sendiri.
+
+Akun demo (dibuat lewat Admin API, password `Jangkau#2026`):
+
+| Email | Peran |
+|---|---|
+| `demo.pelapor@jangkau.test` | pelapor |
+| `demo.admin@jangkau.test` | admin |
+| `demo.org@jangkau.test` | organisasi terverifikasi (Yayasan Peduli Malang) |
 
 ### 3. Jalankan
 
