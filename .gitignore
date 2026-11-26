@@ -42,3 +42,4 @@ docs/internal/
 *.log
 .logs/
 .req*.json
+.probe/

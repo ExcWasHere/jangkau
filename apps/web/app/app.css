@@ -14,6 +14,7 @@
   --color-brand-strong: #075985; /* sky-800 */
   --color-brand-soft: #e0f2fe; /* sky-100 */
   --color-brand-line: #bae6fd; /* sky-200 */
+  --color-accent: #0ea5e9; /* sky-500 — dipakai motif */
 
   --color-ok: #15803d;
   --color-warn: #b45309;
@@ -43,6 +44,12 @@
  * bukan gambar berwarna: satu aset, warna mengikuti token, dan opacity diatur
  * CSS. Dipasang sekali untuk seluruh isi halaman sehingga motif berjalan
  * sampai tepat di atas footer, bukan hanya di hero.
+ *
+ * Dua lapisan: dasar sky-500 yang menempel di seluruh halaman, lalu lapisan
+ * brand-700 yang lebih kuat di area atas. Lapisan dasar sengaja memakai biru
+ * terang — pada opacity rendah biru terang terbaca sebagai tint, sedangkan
+ * biru gelap terlihat kotor. Bagian teks diberi `pattern-free` agar kontras
+ * tetap aman.
  */
 .page-pattern {
   position: relative;
@@ -53,16 +60,41 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
-  background-color: var(--color-brand);
+  z-index: -2;
+  background-color: var(--color-accent);
   -webkit-mask-image: url("/pattern.svg");
   mask-image: url("/pattern.svg");
-  -webkit-mask-size: 340px 340px;
-  mask-size: 340px 340px;
+  -webkit-mask-size: 220px 220px;
+  mask-size: 220px 220px;
   -webkit-mask-repeat: repeat;
   mask-repeat: repeat;
-  opacity: 0.035;
+  opacity: 0.075;
   pointer-events: none;
+}
+
+.page-pattern::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 720px;
+  z-index: -1;
+  background-color: var(--color-brand);
+  -webkit-mask-image: url("/pattern.svg"), linear-gradient(to bottom, #000 35%, transparent 100%);
+  mask-image: url("/pattern.svg"), linear-gradient(to bottom, #000 35%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-size: 220px 220px, 100% 100%;
+  mask-size: 220px 220px, 100% 100%;
+  -webkit-mask-repeat: repeat, no-repeat;
+  mask-repeat: repeat, no-repeat;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* Panel yang memuat teks panjang diberi latar sendiri agar tetap terbaca. */
+.surface-panel {
+  background-color: color-mix(in srgb, var(--color-canvas) 88%, transparent);
+  backdrop-filter: blur(2px);
 }
 
 /*

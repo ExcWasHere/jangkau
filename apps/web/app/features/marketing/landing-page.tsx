@@ -3,6 +3,12 @@ import { Link } from "react-router";
 import { useAuthState } from "~/features/auth/session";
 import { CountUp, Reveal } from "~/shared/ui/reveal";
 
+const STATS = [
+  { value: 1800, suffix: "", label: "warga mengungsi akibat kebakaran di Bangka Selatan" },
+  { value: 405, suffix: "", label: "pengungsi terkonsentrasi di satu pos saat erupsi Sinabung" },
+  { value: 3, suffix: " lapis", label: "verifikasi: dokumen, radius lokasi, bukti belanja" },
+];
+
 const PILLARS = [
   {
     title: "Rincian, bukan ringkasan",
@@ -109,111 +115,152 @@ const ROLES = [
   },
 ];
 
+const GALLERY = [
+  {
+    src: "/photos/aid-boxes.jpg",
+    alt: "Relawan memeriksa kotak bantuan berlabel makanan dan obat.",
+    caption: "Barang datang, tapi belum tentu yang dibutuhkan pos ini.",
+  },
+  {
+    src: "/photos/medicine.jpg",
+    alt: "Relawan menyiapkan kotak obat untuk disalurkan.",
+    caption: "Stok obat di satu pos bisa habis sementara pos lain surplus.",
+  },
+  {
+    src: "/photos/warehouse.jpg",
+    alt: "Tumpukan kotak bantuan di gudang logistik.",
+    caption: "Tanpa catatan per pos, tumpukan ini tidak bisa dibaca.",
+  },
+];
+
 export function LandingPage() {
   const { session, ready } = useAuthState();
   const signedIn = ready && Boolean(session);
 
   return (
-    <>
-      {/* Satu lapisan motif untuk seluruh isi halaman, berhenti tepat di footer. */}
-      <div className="page-pattern">
-        <section className="mx-auto max-w-6xl px-5 pt-16 pb-14 sm:px-8 sm:pt-24 sm:pb-20">
-          <Reveal>
-            <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
-              <span className="h-px w-6 bg-brand-line" aria-hidden />
-              Case 2 — Stronger Communities and Everyday Services
-            </p>
-          </Reveal>
-
-          <Reveal delay={70}>
-            <h1 className="mt-5 max-w-4xl text-[2.1rem] leading-[1.08] font-extrabold tracking-[-0.02em] sm:text-6xl">
-              Bantuan berhenti menumpuk di satu pos.
-              <span className="block text-brand">Mulai mengikuti kebutuhan nyata.</span>
-            </h1>
-          </Reveal>
-
-          <Reveal delay={140}>
-            <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted sm:text-lg">
-              Jangkau menghubungkan pelapor di lokasi, organisasi kemanusiaan terverifikasi, dan
-              donor dalam satu alur yang bisa ditelusuri per pos pengungsian — dari laporan pertama
-              sampai barang diterima.
-            </p>
-          </Reveal>
-
-          <Reveal delay={210}>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                to={signedIn ? "/lapor" : "/daftar"}
-                className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
-              >
-                {signedIn ? "Buat laporan baru" : "Buat akun pelapor"}
-              </Link>
-              <a
-                href="#cara-kerja"
-                className="rounded-lg border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-brand-line hover:text-brand"
-              >
-                Lihat alurnya
-              </a>
-            </div>
-          </Reveal>
-
-          <Reveal delay={280}>
-            <dl className="mt-14 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
-              {[
-                { value: 1800, suffix: "", label: "warga mengungsi akibat kebakaran di Bangka Selatan" },
-                { value: 405, suffix: "", label: "pengungsi terkonsentrasi di satu pos saat erupsi Sinabung" },
-                { value: 3, suffix: " lapis", label: "verifikasi: dokumen, radius lokasi, bukti belanja" },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-canvas px-5 py-6">
-                  <dt className="text-3xl font-extrabold tracking-tight text-brand">
-                    <CountUp value={stat.value} suffix={stat.suffix} />
-                  </dt>
-                  <dd className="mt-1.5 text-[13px] leading-relaxed text-muted">{stat.label}</dd>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
-        </section>
-
-        <section className="border-y border-line">
-          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+    <div className="page-pattern">
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-5 pt-12 pb-16 sm:px-8 sm:pt-20 sm:pb-24">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          <div>
             <Reveal>
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
-                Apa itu Jangkau
-              </p>
-              <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
-                Satu lapisan keterbukaan di dalam alur bantuan.
-              </h2>
-              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-                Laporan, anggaran, donasi, dan stok hidup dalam satu sistem. Yang biasanya jadi
-                lampiran, di sini jadi data yang bisa diperiksa.
+              <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
+                <span className="h-px w-6 bg-brand-line" aria-hidden />
+                Case 2 — Stronger Communities and Everyday Services
               </p>
             </Reveal>
 
-            <ul className="mt-10 grid gap-4 sm:grid-cols-3">
-              {PILLARS.map((pillar, index) => (
-                <Reveal as="li" key={pillar.title} delay={index * 80}>
-                  <div className="h-full rounded-xl border border-line bg-white p-6 transition-colors hover:border-brand-line">
-                    <h3 className="text-[15px] font-semibold">{pillar.title}</h3>
-                    <p className="mt-2 text-[13px] leading-relaxed text-muted">{pillar.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </section>
+            <Reveal delay={70}>
+              <h1 className="mt-5 text-[2.15rem] leading-[1.06] font-extrabold tracking-[-0.025em] sm:text-[3.4rem]">
+                Bantuan berhenti menumpuk di satu pos.
+                <span className="block text-brand">Mulai mengikuti kebutuhan nyata.</span>
+              </h1>
+            </Reveal>
 
-        <section id="cara-kerja" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+            <Reveal delay={140}>
+              <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-muted sm:text-[17px]">
+                Jangkau menghubungkan pelapor di lokasi, organisasi kemanusiaan terverifikasi, dan
+                donor dalam satu alur yang bisa ditelusuri per pos pengungsian — dari laporan
+                pertama sampai barang diterima.
+              </p>
+            </Reveal>
+
+            <Reveal delay={210}>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link
+                  to={signedIn ? "/lapor" : "/daftar"}
+                  className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
+                >
+                  {signedIn ? "Buat laporan baru" : "Buat akun pelapor"}
+                </Link>
+                <Link
+                  to="/peta"
+                  className="rounded-lg border border-brand-line bg-white/80 px-5 py-2.5 text-sm font-semibold text-brand transition-colors hover:bg-white"
+                >
+                  Lihat peta pos
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+
+          <Reveal delay={120}>
+            <figure>
+              <img
+                src="/photos/hero-volunteers.jpg"
+                alt="Dua relawan membawa kotak bantuan berlabel makanan."
+                width={1600}
+                height={1100}
+                fetchPriority="high"
+                className="aspect-[4/3] w-full rounded-2xl border border-line object-cover shadow-[0_24px_60px_-30px_rgba(3,105,161,0.45)]"
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <figcaption className="text-[11px] text-muted">
+                  Ilustrasi logistik bantuan · foto Pexels
+                </figcaption>
+                <p className="rounded-full border border-line bg-white px-3 py-1 text-[11px] font-semibold text-brand">
+                  dicatat per pos
+                </p>
+              </div>
+            </figure>
+          </Reveal>
+        </div>
+
+        <Reveal delay={260}>
+          <dl className="mt-16 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
+            {STATS.map((stat) => (
+              <div key={stat.label} className="bg-white px-5 py-6">
+                <dt className="text-3xl font-extrabold tracking-tight text-brand">
+                  <CountUp value={stat.value} suffix={stat.suffix} />
+                </dt>
+                <dd className="mt-1.5 text-[13px] leading-relaxed text-muted">{stat.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </Reveal>
+      </section>
+
+      {/* Apa itu */}
+      <section className="border-y border-line">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <Reveal>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
-              Kenapa perlu
+              Apa itu Jangkau
             </p>
             <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
-              Bantuan yang terkumpul belum tentu sampai ke pos yang tepat.
+              Satu lapisan keterbukaan di dalam alur bantuan.
             </h2>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
+              Laporan, anggaran, donasi, dan stok hidup dalam satu sistem. Yang biasanya jadi
+              lampiran, di sini jadi data yang bisa diperiksa.
+            </p>
           </Reveal>
 
-          <div className="mt-10 grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+          <ul className="mt-10 grid gap-4 sm:grid-cols-3">
+            {PILLARS.map((pillar, index) => (
+              <Reveal as="li" key={pillar.title} delay={index * 80}>
+                <div className="h-full rounded-xl border border-line bg-white p-6 transition-colors hover:border-brand-line">
+                  <h3 className="text-[15px] font-semibold">{pillar.title}</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-muted">{pillar.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Masalah + perubahan */}
+      <section id="cara-kerja" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+        <Reveal>
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
+            Kenapa perlu
+          </p>
+          <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
+            Bantuan yang terkumpul belum tentu sampai ke pos yang tepat.
+          </h2>
+        </Reveal>
+
+        <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:gap-12">
+          <div>
             <ol className="flex flex-col divide-y divide-line border-t border-line">
               {PROBLEMS.map((problem, index) => (
                 <Reveal as="li" key={problem.number} delay={index * 70}>
@@ -232,8 +279,8 @@ export function LandingPage() {
               ))}
             </ol>
 
-            <Reveal delay={120}>
-              <div className="rounded-xl border border-brand-line bg-brand-soft/40 p-6">
+            <Reveal delay={140}>
+              <div className="mt-6 rounded-xl border border-brand-line bg-white/90 p-6 backdrop-blur-sm">
                 <p className="text-[11px] font-semibold tracking-[0.18em] text-brand-strong uppercase">
                   Yang Jangkau ubah
                 </p>
@@ -248,33 +295,88 @@ export function LandingPage() {
               </div>
             </Reveal>
           </div>
-        </section>
 
-        <section id="fitur" className="border-y border-line">
-          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
-            <Reveal>
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
-                Fitur
-              </p>
-              <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
-                Yang bisa diperiksa, bukan hanya diumumkan.
+          <Reveal delay={100}>
+            <div className="flex flex-col gap-4">
+              <img
+                src="/photos/medicine.jpg"
+                alt="Relawan menyiapkan kotak obat berlabel Medicine."
+                loading="lazy"
+                width={900}
+                height={900}
+                className="aspect-[4/3] w-full rounded-2xl border border-line object-cover"
+              />
+              <div className="rounded-xl border border-line bg-white p-5">
+                <p className="text-[13px] leading-relaxed">
+                  Kebutuhan obat di satu pos bisa berbeda jauh dari pos lain, bahkan dalam satu
+                  kecamatan. Tanpa catatan per pos, selisih itu tidak terlihat.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Galeri */}
+      <section className="border-y border-line">
+        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
+          <Reveal>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+                Di lapangan, masalahnya bukan kekurangan barang.
               </h2>
+              <p className="max-w-sm text-[12px] leading-relaxed text-muted">
+                Foto ilustrasi dari Pexels, bukan dokumentasi kejadian nyata.
+              </p>
+            </div>
+          </Reveal>
+
+          <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+            {GALLERY.map((photo, index) => (
+              <Reveal as="li" key={photo.src} delay={index * 80}>
+                <figure>
+                  <img
+                    src={photo.src}
+                    alt={photo.alt}
+                    loading="lazy"
+                    width={1100}
+                    height={800}
+                    className="aspect-[4/3] w-full rounded-xl border border-line object-cover transition-transform duration-500 hover:scale-[1.015]"
+                  />
+                  <figcaption className="mt-2 text-[12px] leading-relaxed text-muted">
+                    {photo.caption}
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Fitur */}
+      <section id="fitur" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+        <Reveal>
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">Fitur</p>
+          <h2 className="mt-3 max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
+            Yang bisa diperiksa, bukan hanya diumumkan.
+          </h2>
+        </Reveal>
+
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((feature, index) => (
+            <Reveal as="li" key={feature.title} delay={(index % 3) * 70}>
+              <div className="h-full rounded-xl border border-line bg-white p-5 transition-colors hover:border-brand-line">
+                <h3 className="text-[14px] font-semibold">{feature.title}</h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted">{feature.body}</p>
+              </div>
             </Reveal>
+          ))}
+        </ul>
+      </section>
 
-            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map((feature, index) => (
-                <Reveal as="li" key={feature.title} delay={(index % 3) * 70}>
-                  <div className="h-full rounded-xl border border-line bg-white p-5 transition-colors hover:border-brand-line">
-                    <h3 className="text-[14px] font-semibold">{feature.title}</h3>
-                    <p className="mt-2 text-[13px] leading-relaxed text-muted">{feature.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section id="peran" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+      {/* Peran */}
+      <section id="peran" className="border-y border-line">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <Reveal>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">
               Tiga peran, satu alur
@@ -314,40 +416,52 @@ export function LandingPage() {
               </Reveal>
             ))}
           </ul>
-        </section>
+        </div>
+      </section>
 
-        <section className="mx-auto max-w-6xl px-5 pb-20 sm:px-8">
-          <Reveal>
-            <div className="rounded-2xl border border-line bg-white p-8 sm:p-10">
-              <h2 className="max-w-2xl text-2xl font-bold tracking-tight sm:text-3xl">
+      {/* Peta + CTA */}
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+        <Reveal>
+          <div className="grid gap-8 rounded-2xl border border-line bg-white/90 p-7 backdrop-blur-sm sm:p-10 lg:grid-cols-[1fr_0.85fr] lg:items-center">
+            <div>
+              <h2 className="max-w-xl text-2xl font-bold tracking-tight sm:text-3xl">
                 Lihat sendiri pos mana yang kebutuhannya belum terpenuhi.
               </h2>
-              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-                Peta dan stok pos terbuka untuk siapa saja. Untuk melapor, mengambil laporan, atau
-                mengelola pencairan, masuk sesuai peran.
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
+                Peta dan stok pos terbuka untuk siapa saja. Setiap titik menunjukkan radius
+                validasi laporan, sehingga kamu tahu dari mana laporan itu berasal.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <Link
-                  to={signedIn ? "/laporan" : "/masuk"}
+                  to="/peta"
                   className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-strong"
+                >
+                  Buka peta pos
+                </Link>
+                <Link
+                  to={signedIn ? "/laporan" : "/masuk"}
+                  className="rounded-lg border border-line bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-brand-line hover:text-brand"
                 >
                   {signedIn ? "Buka dasbor" : "Masuk"}
                 </Link>
-                <Link
-                  to="/daftar"
-                  className="rounded-lg border border-line px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-brand-line hover:text-brand"
-                >
-                  Daftar sebagai pelapor
-                </Link>
               </div>
-              <p className="mt-6 text-[12px] leading-relaxed text-muted">
+              <p className="mt-6 max-w-xl text-[12px] leading-relaxed text-muted">
                 Prototipe ini memakai data sintetis. Pembayaran dan pencairan dana berjalan dalam
                 mode simulasi dan diberi label di antarmuka.
               </p>
             </div>
-          </Reveal>
-        </section>
-      </div>
-    </>
+
+            <img
+              src="/photos/warehouse.jpg"
+              alt="Tumpukan kotak bantuan di gudang logistik."
+              loading="lazy"
+              width={1100}
+              height={800}
+              className="aspect-[5/4] w-full rounded-xl border border-line object-cover"
+            />
+          </div>
+        </Reveal>
+      </section>
+    </div>
   );
 }
