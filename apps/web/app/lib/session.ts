@@ -6,11 +6,10 @@ import { isSupabaseConfigured } from "./env";
 import { getSupabaseBrowserClient } from "./supabase";
 
 /**
- * Sesi Supabase untuk komponen client. `ready=false` berarti masih dibaca
- * dari storage, sehingga UI tidak berkedip ke halaman masuk.
+ * Sesi Supabase untuk komponen client, tanpa memaksa navigasi.
+ * `ready=false` berarti sesi masih dibaca dari storage.
  */
-export function useSession() {
-  const navigate = useNavigate();
+export function useAuthState() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -27,19 +26,47 @@ export function useSession() {
       if (!active) return;
       setSession(data.session);
       setReady(true);
-      if (!data.session) navigate("/masuk", { replace: true });
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
-      if (!next) navigate("/masuk", { replace: true });
     });
 
     return () => {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   return { session, ready, token: session?.access_token ?? null };
+}
+
+/**
+ * Halaman yang butuh login: tanpa sesi → `/masuk`.
+ * Dipakai halaman data, bukan halaman publik.
+ */
+export function useSession() {
+  const navigate = useNavigate();
+  const { session, ready } = useAuthState();
+
+  useEffect(() => {
+    if (ready && !session) navigate("/masuk", { replace: true });
+  }, [navigate, ready, session]);
+
+  return { session, ready, token: session?.access_token ?? null };
+}
+
+/**
+ * Halaman auth (`/masuk`, `/daftar`): pengguna yang sudah punya sesi
+ * langsung diarahkan ke dasbor, supaya tidak ada dua kondisi login.
+ */
+export function useRedirectIfAuthenticated() {
+  const navigate = useNavigate();
+  const { session, ready } = useAuthState();
+
+  useEffect(() => {
+    if (ready && session) navigate("/laporan", { replace: true });
+  }, [navigate, ready, session]);
+
+  return { ready };
 }

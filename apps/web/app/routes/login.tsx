@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { isSupabaseConfigured } from "../lib/env";
+import { useRedirectIfAuthenticated } from "../lib/session";
 import { getSupabaseBrowserClient } from "../lib/supabase";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { ready: sessionReady } = useRedirectIfAuthenticated();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function Login() {
       const supabase = getSupabaseBrowserClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      navigate("/", { replace: true });
+      navigate("/laporan", { replace: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Gagal masuk");
     } finally {
@@ -80,10 +82,10 @@ export default function Login() {
 
         <button
           type="submit"
-          disabled={busy || !isSupabaseConfigured}
+          disabled={busy || !isSupabaseConfigured || !sessionReady}
           className="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-50"
         >
-          {busy ? "Memproses…" : "Masuk"}
+          {busy || !sessionReady ? "Memproses…" : "Masuk"}
         </button>
       </form>
 

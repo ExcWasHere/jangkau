@@ -1,6 +1,8 @@
 import type { Route } from "./+types/home";
 import { Link } from "react-router";
 
+import { useAuthState } from "../lib/session";
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Jangkau — bantuan tepat sasaran untuk pos pengungsian" },
@@ -45,6 +47,9 @@ const NUMBERS = [
 ];
 
 export default function Home() {
+  const { session, ready } = useAuthState();
+  const signedIn = ready && Boolean(session);
+
   return (
     <main>
       <header className="border-b border-line">
@@ -54,16 +59,16 @@ export default function Home() {
           </span>
           <div className="flex items-center gap-2 text-sm">
             <Link
-              to="/masuk"
+              to={signedIn ? "/laporan" : "/masuk"}
               className="rounded-lg px-3 py-2 font-medium text-muted hover:text-ink"
             >
-              Masuk
+              {signedIn ? "Laporan saya" : "Masuk"}
             </Link>
             <Link
-              to="/daftar"
+              to={signedIn ? "/lapor" : "/daftar"}
               className="rounded-lg bg-brand px-4 py-2 font-semibold text-white hover:bg-brand-strong"
             >
-              Mulai lapor
+              {signedIn ? "Buat laporan" : "Mulai lapor"}
             </Link>
           </div>
         </nav>
@@ -85,10 +90,10 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              to="/daftar"
+              to={signedIn ? "/lapor" : "/daftar"}
               className="rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-strong"
             >
-              Buat akun pelapor
+              {signedIn ? "Buat laporan baru" : "Buat akun pelapor"}
             </Link>
             <a
               href="#alur"

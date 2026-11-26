@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { isSupabaseConfigured } from "../lib/env";
+import { useRedirectIfAuthenticated } from "../lib/session";
 import { getSupabaseBrowserClient } from "../lib/supabase";
 
 export default function Register() {
   const navigate = useNavigate();
+  useRedirectIfAuthenticated();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,7 +32,7 @@ export default function Register() {
 
       // Bila konfirmasi email dimatikan, sesi langsung tersedia.
       if (data.session) {
-        navigate("/", { replace: true });
+        navigate("/laporan", { replace: true });
         return;
       }
       setDone(true);
