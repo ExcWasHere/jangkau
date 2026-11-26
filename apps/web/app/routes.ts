@@ -5,6 +5,7 @@ export default [
   { index: true, file: "routes/home.tsx" },
   { path: "masuk", file: "routes/login.tsx" },
   { path: "daftar", file: "routes/register.tsx" },
+  { path: "peta", file: "routes/peta.tsx" },
   { path: "pos/:postId", file: "routes/post-detail.tsx" },
   { path: "laporan/:reportId", file: "routes/report-detail.tsx" },
 

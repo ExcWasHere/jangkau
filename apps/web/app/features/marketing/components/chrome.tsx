@@ -14,14 +14,8 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line/80 bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-        <Link to="/" className="group flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-[13px] font-bold text-white">
-            J
-          </span>
-          <span className="text-[15px] font-bold tracking-tight">
-            Jangkau
-            <span className="text-brand">.</span>
-          </span>
+        <Link to="/" className="text-[15px] font-bold tracking-tight">
+          Jangkau<span className="text-brand">.</span>
         </Link>
 
         <nav className="hidden items-center gap-1 text-[13px] sm:flex">
@@ -34,6 +28,9 @@ export function MarketingHeader() {
           <a href="#peran" className="rounded-md px-2.5 py-1.5 text-muted hover:text-ink">
             Peran
           </a>
+          <Link to="/peta" className="rounded-md px-2.5 py-1.5 text-muted hover:text-ink">
+            Peta pos
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 text-[13px]">
@@ -67,6 +64,9 @@ export function MarketingFooter() {
           </p>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted">
+          <Link to="/peta" className="hover:text-ink">
+            Peta pos
+          </Link>
           <Link to="/masuk" className="hover:text-ink">
             Masuk
           </Link>

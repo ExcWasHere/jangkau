@@ -14,6 +14,7 @@ import type {
 } from "@jangkau/shared";
 
 import { Badge, Card, EmptyState, SectionTitle } from "~/shared/ui/primitives";
+import { MapView } from "~/shared/ui/map-view";
 
 export type PublicPost = {
   id: string;
@@ -81,65 +82,6 @@ const STATUS_TONE = {
   merged: "neutral",
 } as const;
 
-/**
- * Skema radius pos. Bukan peta jalan: menggambarkan satu hal yang memang
- * dipakai sistem — batas jarak laporan yang diterima — tanpa mengunduh
- * tile atau menambah dependensi peta.
- */
-function RadiusSketch({ radiusM }: { radiusM: number }) {
-  const size = 200;
-  const center = size / 2;
-  const r = center - 12;
-
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      className="h-[200px] w-[200px]"
-      role="img"
-      aria-label={`Radius validasi ${radiusM} meter dari titik pos`}
-    >
-      <circle cx={center} cy={center} r={r} fill="var(--color-brand-soft)" opacity="0.55" />
-      <circle
-        cx={center}
-        cy={center}
-        r={r}
-        fill="none"
-        stroke="var(--color-brand)"
-        strokeWidth="1.5"
-        strokeDasharray="4 4"
-      />
-      <line
-        x1={center}
-        y1={center}
-        x2={center + r}
-        y2={center}
-        stroke="var(--color-brand)"
-        strokeWidth="1"
-      />
-      <circle cx={center} cy={center} r="4.5" fill="var(--color-brand)" />
-      <text
-        x={center + r / 2}
-        y={center - 6}
-        textAnchor="middle"
-        fontSize="9"
-        fill="var(--color-brand-strong)"
-        fontWeight="600"
-      >
-        {radiusM} m
-      </text>
-      <text
-        x={center}
-        y={size - 2}
-        textAnchor="middle"
-        fontSize="8"
-        fill="var(--color-muted)"
-      >
-        laporan di luar batas ditolak
-      </text>
-    </svg>
-  );
-}
-
 export function PostDetailPage({ data }: { data: PostDetail }) {
   const { post, stock, campaigns, reports } = data;
   const occupancy =
@@ -201,18 +143,30 @@ export function PostDetailPage({ data }: { data: PostDetail }) {
           )}
         </Card>
 
-        <Card className="flex items-center gap-4 p-5">
-          <RadiusSketch radiusM={post.radius_m} />
-          <div className="min-w-0">
+        <Card className="overflow-hidden p-0">
+          <MapView
+            posts={[
+              {
+                id: post.id,
+                name: post.name,
+                regency: post.regency,
+                lat: post.lat,
+                lng: post.lng,
+                radius_m: post.radius_m,
+                headcount: post.headcount,
+              },
+            ]}
+            focusId={post.id}
+            height={240}
+            zoom={14}
+          />
+          <div className="border-t border-line p-4">
             <p className="text-[11px] font-semibold tracking-[0.14em] text-brand uppercase">
-              Radius validasi
+              Radius validasi {post.radius_m} m
             </p>
             <p className="mt-1 text-[12px] leading-relaxed text-muted">
-              Laporan hanya diterima bila titik perangkat berada di dalam {post.radius_m} m dari
-              pos ini.
-            </p>
-            <p className="mt-2 font-mono text-[11px] text-muted tabular-nums">
-              {post.lat.toFixed(5)}, {post.lng.toFixed(5)}
+              Laporan hanya diterima bila titik perangkat berada di dalam lingkaran ini. Lingkaran
+              di peta adalah radius yang sama dengan yang diuji database.
             </p>
             <a
               href={osmLink}
