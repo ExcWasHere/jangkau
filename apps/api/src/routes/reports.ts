@@ -137,7 +137,7 @@ reportRoutes.get("/", async (c) => {
     throw badRequest("invalid_query", "Parameter filter tidak valid", parsed.error.issues);
   }
 
-  const { limit, postId, status } = parsed.data;
+  const { limit, postId, status, mine } = parsed.data;
   const admin = adminClient(c.env);
 
   let query = admin
@@ -150,6 +150,9 @@ reportRoutes.get("/", async (c) => {
 
   if (postId) query = query.eq("post_id", postId);
   if (status) query = query.eq("status", status);
+  // API memakai service_role, jadi filter kepemilikan harus eksplisit —
+  // RLS tidak menyaring untuknya.
+  if (mine) query = query.eq("reporter_id", c.get("user").id);
 
   const { data, error } = await query;
   if (error) raiseDbError(error);

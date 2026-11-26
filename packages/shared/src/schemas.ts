@@ -58,6 +58,11 @@ export type CreateReportInput = z.infer<typeof createReportSchema>;
 export const reportListQuerySchema = paginationSchema.extend({
   postId: z.string().uuid().optional(),
   status: z.enum(REPORT_STATUSES).optional(),
+  /** `1` = hanya laporan milik pemanggil (dipakai halaman "Laporan saya"). */
+  mine: z
+    .enum(["0", "1"])
+    .default("0")
+    .transform((value) => value === "1"),
 });
 
 export const presignSchema = z.object({

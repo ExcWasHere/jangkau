@@ -28,7 +28,7 @@ export default function Reports() {
     if (!token) return;
     let active = true;
 
-    apiFetch<{ items: Report[] }>("/reports?limit=50", { token })
+    apiFetch<{ items: Report[] }>("/reports?limit=50&mine=1", { token })
       .then((data) => {
         if (!active) return;
         setItems(data.items);
@@ -51,7 +51,7 @@ export default function Reports() {
     <AppShell>
       <h1 className="text-2xl font-bold">Laporan</h1>
       <p className="mt-1 text-sm text-muted">
-        Laporan terbaru per pos, diurutkan menurut waktu kejadian di perangkat.
+        Laporan yang kamu kirim, terbaru dulu menurut waktu kejadian di perangkat.
       </p>
 
       {loading && <p className="mt-6 text-sm text-muted">Memuat…</p>}
