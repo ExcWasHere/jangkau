@@ -134,6 +134,41 @@ reportRoutes.post("/", requireAuth, async (c) => {
   );
 });
 
+/**
+ * Kotak masuk organisasi: laporan yang sudah memenuhi ambang dukungan dan
+ * belum punya kampanye. Hanya untuk organisasi terverifikasi atau admin.
+ */
+reportRoutes.get("/inbox", requireAuth, async (c) => {
+  const user = c.get("user");
+  if (!user.organizationId && user.role !== "admin") {
+    throw forbidden("Akun harus terhubung ke organisasi yang sudah terverifikasi");
+  }
+
+  const admin = adminClient(c.env);
+  const { data, error } = await admin
+    .from("reports")
+    .select(
+      "id, post_id, body_text, category, severity, status, upvote_count, captured_at, ai_confidence",
+    )
+    .eq("status", "eligible")
+    .order("upvote_count", { ascending: false })
+    .limit(50);
+
+  if (error) raiseDbError(error);
+
+  const { data: taken } = await admin.from("campaigns").select("report_id");
+  const takenIds = new Set((taken ?? []).map((row) => row.report_id));
+
+  const { data: posts } = await admin.from("public_posts").select("id, name, regency");
+  const postById = new Map((posts ?? []).map((post) => [post.id, post]));
+
+  return c.json({
+    items: (data ?? [])
+      .filter((report) => !takenIds.has(report.id))
+      .map((report) => ({ ...report, post: postById.get(report.post_id) ?? null })),
+  });
+});
+
 reportRoutes.get("/", requireAuth, async (c) => {
   const parsed = reportListQuerySchema.safeParse(c.req.query());
   if (!parsed.success) {

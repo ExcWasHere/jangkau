@@ -11,6 +11,9 @@ import { meRoutes } from "./modules/me/routes.js";
 import { postRoutes } from "./modules/posts/routes.js";
 import { reportRoutes } from "./modules/reports/routes.js";
 import { uploadRoutes } from "./modules/uploads/routes.js";
+import { adminOrganizationRoutes, organizationRoutes } from "./modules/organizations/routes.js";
+import { campaignRoutes, trancheRoutes } from "./modules/campaigns/routes.js";
+import { stockRoutes } from "./modules/stock/routes.js";
 
 const app = new Hono<AppEnv>();
 
@@ -60,6 +63,11 @@ api.route("/me", meRoutes);
 api.route("/posts", postRoutes);
 api.route("/reports", reportRoutes);
 api.route("/uploads", uploadRoutes);
+api.route("/organizations", organizationRoutes);
+api.route("/admin/organizations", adminOrganizationRoutes);
+api.route("/campaigns", campaignRoutes);
+api.route("/tranches", trancheRoutes);
+api.route("/stock", stockRoutes);
 
 app.route("/api/v1", api);
 

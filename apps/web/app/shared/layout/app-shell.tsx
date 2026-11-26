@@ -15,6 +15,10 @@ type NavItem = { to: string; label: string; roles: AppRole[] };
 const NAV: NavItem[] = [
   { to: "/lapor", label: "Lapor", roles: ["resident", "organization", "admin"] },
   { to: "/laporan", label: "Laporan saya", roles: ["resident", "organization", "admin"] },
+  { to: "/konfirmasi-rab", label: "Konfirmasi RAB", roles: ["resident", "organization", "admin"] },
+  { to: "/laporan-masuk", label: "Laporan masuk", roles: ["organization", "admin"] },
+  { to: "/organisasi", label: "Organisasi", roles: ["organization", "admin"] },
+  { to: "/admin/organisasi", label: "Verifikasi", roles: ["admin"] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -25,14 +29,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.location.href = "/";
   }
 
-  const visible = NAV.filter((item) => !me || item.roles.includes(me.role));
+  const visible = NAV.filter((item) => {
+    if (!me) return item.roles.includes("resident") && item.to !== "/konfirmasi-rab";
+    // Menu organisasi hanya untuk yang sudah terverifikasi; status
+    // verifikasi adalah dasar kewenangan, bukan sekadar label.
+    if (item.to === "/laporan-masuk") {
+      return me.role === "admin" || Boolean(me.organizationId);
+    }
+    return item.roles.includes(me.role);
+  });
 
   const roleLabel = loading
     ? null
     : me?.role === "admin"
       ? "Admin"
       : me?.organizationId
-        ? "Organisasi"
+        ? "Org terverifikasi"
         : "Pelapor";
 
   return (
