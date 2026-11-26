@@ -8,7 +8,17 @@ export default [
   { path: "pos/:postId", file: "routes/post-detail.tsx" },
   { path: "laporan/:reportId", file: "routes/report-detail.tsx" },
 
-  // Butuh login
+  // Pelapor
   { path: "lapor", file: "routes/report-new.tsx" },
   { path: "laporan", file: "routes/reports.tsx" },
+  { path: "konfirmasi-rab", file: "routes/confirm-rab.tsx" },
+
+  // Organisasi
+  { path: "organisasi", file: "routes/organization-status.tsx" },
+  { path: "organisasi/daftar", file: "routes/organization-register.tsx" },
+  { path: "laporan-masuk", file: "routes/organization-inbox.tsx" },
+  { path: "kampanye/:campaignId", file: "routes/campaign-detail.tsx" },
+
+  // Admin
+  { path: "admin/organisasi", file: "routes/admin-organizations.tsx" },
 ] satisfies RouteConfig;

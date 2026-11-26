@@ -333,8 +333,15 @@ declare
   v_raised numeric(14,2);
 begin
   if new.status = 'paid' and old.status is distinct from 'paid' then
+    -- Trigger ini BEFORE UPDATE, jadi baris yang sedang diubah masih
+    -- berstatus lama di tabel. Jumlahkan donasi lain yang sudah `paid`,
+    -- lalu tambahkan baris ini secara eksplisit.
     select coalesce(sum(amount), 0) into v_raised
-    from donations where campaign_id = new.campaign_id and status = 'paid';
+    from donations
+    where campaign_id = new.campaign_id
+      and status = 'paid'
+      and id <> new.id;
+    v_raised := v_raised + new.amount;
 
     update campaigns
        set raised_amount = v_raised,
