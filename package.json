@@ -3,14 +3,17 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.13",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun run --filter './apps/*' dev",
     "dev:web": "bun run --filter @jangkau/web dev",
     "dev:api": "bun run --filter @jangkau/api dev",
     "build": "bun run --filter './apps/*' build",
     "typecheck": "bun run --filter '*' typecheck",
-    "deploy": "bun run --filter './apps/*' deploy",
+    "deploy": "bun run --filter @jangkau/web deploy",
     "db:push": "bun run --filter @jangkau/db push",
     "db:reset": "bun run --filter @jangkau/db reset",
     "db:types": "bun run --filter @jangkau/db types"
