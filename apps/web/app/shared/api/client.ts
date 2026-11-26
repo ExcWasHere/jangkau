@@ -1,7 +1,12 @@
 import { publicEnv } from "~/shared/lib/env";
 
-type ApiErrorBody = { error?: { code?: string; message?: string } };
-
+/**
+ * Klien HTTP tunggal ke Hono API. Token Supabase dilampirkan bila ada.
+ *
+ * `ApiError` membawa `status` supaya pemanggil bisa membedakan kegagalan
+ * permanen (4xx) dari yang layak dicoba ulang (5xx / jaringan) — penting
+ * untuk antrean laporan offline.
+ */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -13,10 +18,8 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Satu pintu ke Hono API. Token Supabase dilampirkan bila ada;
- * error server dipetakan ke ApiError agar bisa ditampilkan apa adanya.
- */
+type ApiErrorBody = { error?: { code?: string; message?: string } };
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit & { token?: string | null } = {},

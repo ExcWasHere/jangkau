@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { NEED_CATEGORY_LABELS, REPORT_STATUS_LABELS } from "@jangkau/shared";
 import type { NeedCategory, ReportStatus } from "@jangkau/shared";
 
+import { Link } from "react-router";
+
+import { RequireRole } from "~/features/auth/guards";
 import { AppShell } from "~/shared/layout/app-shell";
 import { apiFetch, ApiError } from "~/shared/api/client";
 import { useSession } from "~/features/auth/session";
@@ -17,6 +20,7 @@ type Report = {
   captured_at: string;
   ai_confidence: number | null;
   media: Array<{ mimeType: string; url: string }>;
+  hasVoted: boolean;
 };
 
 export default function Reports() {
@@ -50,6 +54,7 @@ export default function Reports() {
 
   return (
     <AppShell>
+      <RequireRole allow={["resident", "organization", "admin"]}>
       <h1 className="text-2xl font-bold">Laporan</h1>
       <p className="mt-1 text-sm text-muted">
         Laporan yang kamu kirim, terbaru dulu menurut waktu kejadian di perangkat.
@@ -71,7 +76,7 @@ export default function Reports() {
 
       <ul className="mt-6 divide-y divide-line rounded-xl border border-line">
         {items.map((report) => (
-          <li key={report.id} className="p-4">
+          <li key={report.id} className="p-4 transition-colors hover:bg-surface/50">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="rounded-full bg-brand-soft px-2 py-0.5 font-semibold text-brand-strong">
                 {NEED_CATEGORY_LABELS[report.category]}
@@ -89,7 +94,9 @@ export default function Reports() {
                 </span>
               )}
             </div>
-            <p className="mt-2 text-sm">{report.body_text}</p>
+            <Link to={`/laporan/${report.id}`} className="mt-2 block text-sm hover:text-brand">
+              {report.body_text}
+            </Link>
             {report.media.length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-2">
                 {report.media.map((file, index) => (
@@ -109,6 +116,7 @@ export default function Reports() {
           </li>
         ))}
       </ul>
+      </RequireRole>
     </AppShell>
   );
 }
