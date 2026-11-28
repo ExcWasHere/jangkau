@@ -83,7 +83,17 @@ const DOC_KEYS: Record<string, DictKey> = {
   other: "dashboard.docKindFieldProof",
 };
 
-type Tab = "verifications" | "pic" | "reports" | "funds";
+type Tab = "verifications" | "pic" | "reports" | "funds" | "audit";
+
+type AuditItem = {
+  id: number;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  payload: unknown;
+  createdAt: string;
+  actorName: string;
+};
 
 type DisbursementItem = {
   id: string;
@@ -110,6 +120,7 @@ function AdminBody() {
   const [pics, setPics] = useState<PicItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [funds, setFunds] = useState<DisbursementItem[]>([]);
+  const [audit, setAudit] = useState<AuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -117,13 +128,14 @@ function AdminBody() {
     if (!token) return;
     setLoading(true);
     try {
-      const [s, v, p, r, d, dApproved] = await Promise.all([
+      const [s, v, p, r, d, dApproved, a] = await Promise.all([
         apiFetch<Stats>("/admin/stats", { token }),
         apiFetch<{ items: VerificationItem[] }>("/admin/verifications?status=pending", { token }),
         apiFetch<{ items: PicItem[] }>("/admin/pic-applications?status=applied", { token }),
         apiFetch<{ items: ReportItem[] }>("/admin/content-reports?status=open", { token }),
         apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=requested", { token }),
         apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=approved", { token }),
+        apiFetch<{ items: AuditItem[] }>("/admin/audit-logs?limit=40", { token }),
       ]);
       setStats(s);
       setVerifications(v.items);
@@ -133,6 +145,7 @@ function AdminBody() {
       // sudah disetujui tapi belum ditandai berpindah. Tanpa ini admin harus
       // menebak kapan menekan tombol kedua.
       setFunds([...d.items, ...dApproved.items]);
+      setAudit(a.items);
     } catch (cause) {
       toast.push(cause instanceof ApiError ? cause.message : t("common.loadFailed"), "error");
     } finally {
@@ -163,6 +176,7 @@ function AdminBody() {
     { key: "pic", label: "admin.tabPic", count: stats?.pendingPicApplications ?? 0 },
     { key: "reports", label: "admin.tabReports", count: stats?.openContentReports ?? 0 },
     { key: "funds", label: "adminFunds.tab", count: stats?.pendingDisbursements ?? 0 },
+    { key: "audit", label: "adminAudit.tab", count: 0 },
   ];
 
   return (
@@ -366,6 +380,39 @@ function AdminBody() {
               </li>
             ))}
           </ul>
+        )
+      ) : tab === "audit" ? (
+        audit.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[13px] text-muted">
+            {t("adminAudit.empty")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-[560px] border-collapse text-[13px]">
+              <thead className="bg-surface-2 text-left text-[11px] uppercase tracking-wide text-subtle">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">{t("adminAudit.when")}</th>
+                  <th className="px-3 py-2 font-semibold">{t("adminAudit.actor")}</th>
+                  <th className="px-3 py-2 font-semibold">{t("adminAudit.action")}</th>
+                  <th className="px-3 py-2 font-semibold">{t("adminAudit.detail")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {audit.map((entry) => (
+                  <tr key={entry.id} className="border-t border-line">
+                    <td className="px-3 py-2 text-muted">
+                      {new Date(entry.createdAt).toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-3 py-2">{entry.actorName}</td>
+                    <td className="px-3 py-2 font-mono text-[12px]">{entry.action}</td>
+                    <td className="px-3 py-2 text-muted">
+                      {entry.payload ? JSON.stringify(entry.payload) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )
       ) : tab === "funds" ? (
         funds.length === 0 ? (

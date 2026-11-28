@@ -8,6 +8,7 @@ import { fetchRecentDonations } from "~/features/donate/api";
 import { formatRupiah, relativeTime } from "~/features/feed/api";
 import { useAuthState } from "~/features/auth/session";
 import { ApplyPanel, PoskoEditor } from "~/features/event/apply-panel";
+import { ReportContentButton } from "~/features/moderation/report-button";
 import { translatorFromMatches, useT } from "~/i18n";
 import { AppShell } from "~/shared/layout/app-shell";
 import { apiFetch } from "~/shared/api/client";
@@ -155,6 +156,11 @@ export default function EventDetailPage() {
                 posko: event.poskoCount,
               })}
             </span>
+            {/* Ditaruh di barisnya sendiri: pada layar sempit tombol ini
+                tertutup tombol donasi dan teksnya tidak terbaca. */}
+            <div className="basis-full">
+              <ReportContentButton eventId={event.id} token={token} />
+            </div>
           </div>
         </header>
 

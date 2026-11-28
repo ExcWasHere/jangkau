@@ -489,6 +489,50 @@ export const en = {
     simulatedNote: "Transfer is simulated — no real money moves.",
   },
 
+  report: {
+    title: "Report content",
+    intro: "Help keep reports accurate. Reports go to the admin queue and do not remove content immediately.",
+    reason: "Reason",
+    reasonHoax: "Hoax or incorrect",
+    reasonDuplicate: "Duplicate of another report",
+    reasonIrrelevant: "Not related to a disaster",
+    reasonGraphic: "Too graphic",
+    reasonOther: "Other",
+    note: "Note (optional)",
+    notePlaceholder: "Point out which part is problematic",
+    submit: "Send report",
+    sent: "Report sent, thank you",
+    signIn: "Sign in to report content.",
+    alreadyReported: "You already reported this report.",
+  },
+
+  notifications: {
+    title: "Notifications",
+    intro: "Updates about reports, verification, donations, and distribution you follow.",
+    empty: "No notifications yet.",
+    markAll: "Mark all as read",
+    markedAll: "All notifications marked as read",
+    unread: "{count} unread",
+    open: "Open",
+    badgeLabel: "Notifications, {count} unread",
+    kindVerification: "Verification",
+    kindPic: "Person in charge",
+    kindDonation: "Donation",
+    kindDisbursement: "Disbursement",
+    kindModeration: "Moderation",
+    kindOther: "Other",
+  },
+
+  adminAudit: {
+    tab: "Audit trail",
+    empty: "No records yet.",
+    action: "Action",
+    actor: "Actor",
+    entity: "Entity",
+    when: "When",
+    detail: "Detail",
+  },
+
   guards: {
     unverifiedTitle: "Distributor verification not approved yet",
     unverifiedBody:

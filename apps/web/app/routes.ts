@@ -12,6 +12,7 @@ export default [
   { path: "dashboard", file: "routes/dashboard.tsx" },
   { path: "pencairan", file: "routes/pencairan.tsx" },
   { path: "konfirmasi", file: "routes/konfirmasi.tsx" },
+  { path: "notifikasi", file: "routes/notifikasi.tsx" },
   { path: "admin", file: "routes/admin.tsx" },
   { path: "masuk", file: "routes/login.tsx" },
   { path: "daftar", file: "routes/register.tsx" },
