@@ -1218,3 +1218,26 @@ select u.id,
             then 'distributor'::account_type else 'resident'::account_type end
   from auth.users u
 on conflict (id) do nothing;
+
+-- ============================================================ 14. hak akses role Supabase
+-- Tabel dibuat lewat koneksi langsung sebagai `postgres`, sehingga default
+-- privilege Supabase tidak otomatis berlaku. Tanpa blok ini setiap request
+-- dari anon/authenticated/service_role gagal dengan 42501 sebelum RLS sempat
+-- menilai policy. RLS tetap jadi penyaring utama: grant hanya membuka pintu,
+-- policy yang menentukan baris mana yang boleh dibaca atau ditulis.
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
+grant select on all tables in schema public to anon, authenticated;
+grant insert, update, delete on all tables in schema public to authenticated;
+
+grant execute on all functions in schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to service_role;
+alter default privileges in schema public
+  grant select on tables to anon, authenticated;
+alter default privileges in schema public
+  grant execute on functions to anon, authenticated, service_role;

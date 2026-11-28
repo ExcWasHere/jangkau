@@ -1,94 +1,90 @@
 import { Link, NavLink } from "react-router";
 
-import type { AppRole } from "@jangkau/shared";
-
 import { useMe } from "~/features/auth/use-me";
+import { useAuthState } from "~/features/auth/session";
 import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 
-type NavItem = { to: string; label: string; roles: AppRole[] };
-
-/**
- * Navigasi mengikuti peran yang dilaporkan API, bukan tebakan di klien.
- * `organizationId` hanya terisi setelah organisasi diverifikasi, jadi
- * organisasi berstatus pending tidak melihat menu operasional.
- */
-const NAV: NavItem[] = [
-  { to: "/lapor", label: "Lapor", roles: ["resident", "organization", "admin"] },
-  { to: "/laporan", label: "Laporan saya", roles: ["resident", "organization", "admin"] },
-  { to: "/konfirmasi-rab", label: "Konfirmasi RAB", roles: ["resident", "organization", "admin"] },
-  { to: "/laporan-masuk", label: "Laporan masuk", roles: ["organization", "admin"] },
-  { to: "/stok", label: "Stok", roles: ["organization", "admin"] },
-  { to: "/organisasi", label: "Organisasi", roles: ["organization", "admin"] },
-  { to: "/admin/organisasi", label: "Verifikasi", roles: ["admin"] },
+const NAV = [
+  { to: "/", label: "Beranda", end: true },
+  { to: "/leaderboard", label: "Leaderboard", end: false },
+  { to: "/pantau", label: "Pantau", end: false },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { me, loading } = useMe();
-
-  async function signOut() {
-    await getSupabaseBrowserClient().auth.signOut();
-    window.location.href = "/";
-  }
-
-  const visible = NAV.filter((item) => {
-    if (!me) return item.roles.includes("resident") && item.to !== "/konfirmasi-rab";
-    // Menu organisasi hanya untuk yang sudah terverifikasi; status
-    // verifikasi adalah dasar kewenangan, bukan sekadar label.
-    if (item.to === "/laporan-masuk") {
-      return me.role === "admin" || Boolean(me.organizationId);
-    }
-    return item.roles.includes(me.role);
-  });
-
-  const roleLabel = loading
-    ? null
-    : me?.role === "admin"
-      ? "Admin"
-      : me?.organizationId
-        ? "Org terverifikasi"
-        : "Pelapor";
+  const { session } = useAuthState();
+  const { me } = useMe();
 
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-[15px] font-extrabold tracking-tight">
-              Jangkau<span className="text-brand">.</span>
-            </Link>
-            {roleLabel && (
-              <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
-                {roleLabel}
-              </span>
-            )}
-          </div>
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center gap-6 px-4">
+          <Link to="/" className="flex items-baseline gap-0.5 text-[20px] font-extrabold tracking-tight">
+            JANGKAU
+            <span aria-hidden className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-brand" />
+          </Link>
 
-          <nav className="flex flex-wrap items-center gap-0.5 text-[13px]">
-            {visible.map((item) => (
+          <nav className="hidden items-center gap-5 text-[14px] md:flex">
+            {NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.end}
                 className={({ isActive }) =>
-                  `rounded-lg px-2.5 py-1.5 font-medium transition-colors ${
-                    isActive ? "bg-brand-soft text-brand-strong" : "text-muted hover:text-ink"
-                  }`
+                  isActive ? "font-semibold text-ink" : "text-muted hover:text-ink"
                 }
               >
                 {item.label}
               </NavLink>
             ))}
-            <button
-              type="button"
-              onClick={signOut}
-              className="rounded-lg px-2.5 py-1.5 font-medium text-muted transition-colors hover:text-ink"
-            >
-              Keluar
-            </button>
           </nav>
+
+          <div className="ml-auto flex items-center gap-3">
+            {session ? (
+              <>
+                <Link
+                  to="/unggah"
+                  className="rounded-lg bg-brand px-4 py-2 text-[14px] font-semibold text-white hover:bg-brand-strong"
+                >
+                  Unggah
+                </Link>
+                <Link to="/saya" className="text-[14px] text-muted hover:text-ink">
+                  {me?.displayName ?? "Akun"}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/masuk" className="text-[14px] text-muted hover:text-ink">
+                  Masuk
+                </Link>
+                <Link
+                  to="/daftar"
+                  className="rounded-lg bg-brand px-4 py-2 text-[14px] font-semibold text-white hover:bg-brand-strong"
+                >
+                  Daftar
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1120px] flex-1 px-4 py-8">{children}</main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center gap-4 px-4 py-6 text-[13px] text-muted">
+          <span>Jangkau — bantuan tepat sasaran untuk lokasi bencana.</span>
+          <span className="ml-auto">Data demo. Pencairan dana disimulasikan.</span>
+          {session ? (
+            <button
+              type="button"
+              onClick={() => void getSupabaseBrowserClient().auth.signOut()}
+              className="underline hover:text-ink"
+            >
+              Keluar
+            </button>
+          ) : null}
+        </div>
+      </footer>
     </div>
   );
 }

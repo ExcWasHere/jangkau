@@ -69,10 +69,10 @@ values
    'posts/2026/11/jakarta-flood-2020.webp', now() - interval '2 days', now() - interval '40 minutes',
    '1c414d44-911d-4860-a56f-db8e5c43fa2e'),
 
-  ('e0000000-0000-4000-8000-000000000002','Kebakaran Pasar Atas Bukittinggi',
-   'fire','Api menghanguskan 40 kios dan merambat ke permukiman padat di belakang pasar.',
-   st_setsrid(st_makepoint(100.3692,-0.3055),4326)::geography, 1200,
-   'Pasar Atas','Guguk Panjang','Bukittinggi','Sumatera Barat', 5,'monitoring',
+  ('e0000000-0000-4000-8000-000000000002','Kebakaran Lapas Tangerang',
+   'fire','Api melalap blok hunian dan menewaskan puluhan orang. Keluarga korban berkumpul di depan gerbang mencari informasi.',
+   st_setsrid(st_makepoint(106.6319,-6.1783),4326)::geography, 1200,
+   'Cipondoh','Cipondoh','Tangerang','Banten', 5,'monitoring',
    'posts/2026/11/tangerang-prison-fire.webp', now() - interval '5 days', now() - interval '3 hours',
    '18f473eb-851c-4c51-917f-f3bda576c9b2'),
 
@@ -83,22 +83,60 @@ values
    'posts/2026/11/merapi-eruption.webp', now() - interval '12 hours', now() - interval '2 hours',
    'f9315f1c-0a82-4878-afb6-fdd42beac9af'),
 
-  ('e0000000-0000-4000-8000-000000000004','Tanah Longsor Cianjur',
-   'landslide','Longsor menimbun akses jalan desa dan merusak 12 rumah. Tim SAR masih melakukan pencarian.',
-   st_setsrid(st_makepoint(107.1346,-6.8167),4326)::geography, 2000,
-   'Cugenang','Cugenang','Cianjur','Jawa Barat', 4,'monitoring',
+  ('e0000000-0000-4000-8000-000000000004','Banjir Rob Tanjung Mas',
+   'flood','Rob merendam permukiman dan area pelabuhan. Warga bertahan di lantai dua, akses jalan tergenang.',
+   st_setsrid(st_makepoint(110.4265,-6.9495),4326)::geography, 2000,
+   'Tanjung Mas','Semarang Utara','Semarang','Jawa Tengah', 4,'monitoring',
    'posts/2026/11/semarang-flood.webp', now() - interval '4 days', now() - interval '6 hours',
    'd44d757e-affa-477e-a72a-ef5e47336e04'),
 
-  ('e0000000-0000-4000-8000-000000000005','Gempa Lombok Utara',
-   'earthquake','Gempa merusak ratusan bangunan sekolah dan rumah warga di tiga kecamatan.',
-   st_setsrid(st_makepoint(116.2800,-8.3500),4326)::geography, 2500,
-   'Tanjung','Tanjung','Lombok Utara','Nusa Tenggara Barat', 3,'open',
+  ('e0000000-0000-4000-8000-000000000005','Banjir Tanjung Duren',
+   'flood','Banjir setinggi dada orang dewasa merendam permukiman padat. Warga mengungsi ke musala dan rumah kerabat.',
+   st_setsrid(st_makepoint(106.7930,-6.1680),4326)::geography, 2500,
+   'Tanjung Duren','Grogol Petamburan','Jakarta Barat','DKI Jakarta', 3,'open',
    'posts/2026/11/jakarta-flood-tanjung-duren.webp', now() - interval '6 days', now() - interval '1 day',
    '13879bda-33cd-4e3c-b242-75f9e16d90e2')
 on conflict (id) do nothing;
 
--- ============================================================ 4. post + media
+-- ============================================================ 4. penyelarasan event dengan foto
+-- Foto demo berasal dari Wikimedia Commons dan isinya tidak bisa dipilih bebas.
+-- Judul, jenis bencana, dan koordinat diselaraskan dengan foto yang benar-benar
+-- tersedia supaya kartu feed tidak menampilkan foto yang salah konteks.
+--
+-- Wajib dijalankan SEBELUM insert post: trigger `fn_guard_post_location` berjalan
+-- sebagai BEFORE INSERT dan tidak peduli `on conflict do nothing`, jadi koordinat
+-- event harus sudah benar sebelum post baru (yang dilewati) ikut dievaluasi.
+update disaster_events as e set
+  title = v.title, disaster_type = v.disaster_type, summary = v.summary,
+  location = v.location, radius_m = v.radius_m,
+  village = v.village, district = v.district, regency = v.regency, province = v.province,
+  severity = v.severity, cover_media_key = v.cover_media_key
+from (values
+  ('e0000000-0000-4000-8000-000000000001'::uuid, 'Banjir Bandang Gunung Arjuna', 'flash_flood'::disaster_type,
+   'Air bah dari lereng Arjuna menerjang tiga dusun dalam satu malam. Warga mengungsi ke balai desa dan masjid.',
+   st_setsrid(st_makepoint(112.6005,-7.9005),4326)::geography, 1500,
+   'Sumberpucung','Kromengan','Malang','Jawa Timur', 4, 'posts/2026/11/jakarta-flood-2020.webp'),
+  ('e0000000-0000-4000-8000-000000000002'::uuid, 'Kebakaran Lapas Tangerang', 'fire'::disaster_type,
+   'Api melalap blok hunian dan menewaskan puluhan orang. Keluarga korban berkumpul di depan gerbang mencari informasi.',
+   st_setsrid(st_makepoint(106.6319,-6.1783),4326)::geography, 1200,
+   'Cipondoh','Cipondoh','Tangerang','Banten', 5, 'posts/2026/11/tangerang-prison-fire.webp'),
+  ('e0000000-0000-4000-8000-000000000003'::uuid, 'Erupsi Gunung Merapi', 'volcanic_eruption'::disaster_type,
+   'Hujan abu vulkanik melanda lima desa di lereng selatan. Warga dievakuasi ke barak pengungsian.',
+   st_setsrid(st_makepoint(110.4461,-7.5407),4326)::geography, 3000,
+   'Kaliurang','Pakem','Sleman','DI Yogyakarta', 3, 'posts/2026/11/merapi-eruption.webp'),
+  ('e0000000-0000-4000-8000-000000000004'::uuid, 'Banjir Rob Tanjung Mas', 'flood'::disaster_type,
+   'Rob merendam permukiman dan area pelabuhan. Warga bertahan di lantai dua, akses jalan tergenang.',
+   st_setsrid(st_makepoint(110.4265,-6.9495),4326)::geography, 2000,
+   'Tanjung Mas','Semarang Utara','Semarang','Jawa Tengah', 4, 'posts/2026/11/semarang-flood.webp'),
+  ('e0000000-0000-4000-8000-000000000005'::uuid, 'Banjir Tanjung Duren', 'flood'::disaster_type,
+   'Banjir setinggi dada orang dewasa merendam permukiman padat. Warga mengungsi ke musala dan rumah kerabat.',
+   st_setsrid(st_makepoint(106.7930,-6.1680),4326)::geography, 2500,
+   'Tanjung Duren','Grogol Petamburan','Jakarta Barat','DKI Jakarta', 3, 'posts/2026/11/jakarta-flood-tanjung-duren.webp')
+) as v(id, title, disaster_type, summary, location, radius_m, village, district, regency, province, severity, cover_media_key)
+where e.id = v.id;
+
+
+-- ============================================================ 5. post + media
 -- Post memakai client_uuid tetap supaya seed bisa dijalankan ulang.
 insert into posts (id, client_uuid, event_id, author_id, body, location, accuracy_m, place_label, captured_at, is_primary, ai_category, ai_confidence, ai_model)
 values
@@ -114,8 +152,8 @@ values
 
   ('f0000000-0000-4000-8000-000000000003','c0000000-0000-4000-8000-000000000003',
    'e0000000-0000-4000-8000-000000000002','18f473eb-851c-4c51-917f-f3bda576c9b2',
-   'Kebakaran Pasar Atas, 40 kios habis. Warga sekarang mengungsi di gedung serbaguna dan butuh pakaian serta perlengkapan tidur.',
-   st_setsrid(st_makepoint(100.3693,-0.3056),4326)::geography, 18,'Pasar Atas', now() - interval '5 days', true,'clothing',0.89,'ag/gemini-3.8-flash-high'),
+   'Kebakaran Lapas Tangerang, blok hunian habis. Keluarga korban menunggu di depan gerbang dan butuh air minum serta alas duduk.',
+   st_setsrid(st_makepoint(106.6320,-6.1784),4326)::geography, 18,'Cipondoh', now() - interval '5 days', true,'water',0.89,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000004','c0000000-0000-4000-8000-000000000004',
    'e0000000-0000-4000-8000-000000000003','f9315f1c-0a82-4878-afb6-fdd42beac9af',
@@ -124,23 +162,23 @@ values
 
   ('f0000000-0000-4000-8000-000000000005','c0000000-0000-4000-8000-000000000005',
    'e0000000-0000-4000-8000-000000000004','d44d757e-affa-477e-a72a-ef5e47336e04',
-   'Longsor menutup jalan utama. Dua dusun terisolasi, butuh makanan dan obat-obatan segera.',
-   st_setsrid(st_makepoint(107.1347,-6.8168),4326)::geography, 22,'Cugenang', now() - interval '4 days', true,'food',0.92,'ag/gemini-3.8-flash-high'),
+   'Rob merendam jalan pelabuhan sejak pagi. Warga di RT 3 belum bisa keluar rumah, butuh makanan dan obat-obatan.',
+   st_setsrid(st_makepoint(110.4266,-6.9496),4326)::geography, 22,'Tanjung Mas', now() - interval '4 days', true,'food',0.92,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000006','c0000000-0000-4000-8000-000000000006',
    'e0000000-0000-4000-8000-000000000005','13879bda-33cd-4e3c-b242-75f9e16d90e2',
-   'Gempa merusak sekolah dan 200 rumah. Warga tidur di halaman, butuh terpal dan selimut.',
-   st_setsrid(st_makepoint(116.2801,-8.3501),4326)::geography, 15,'Tanjung', now() - interval '6 days', true,'shelter',0.88,'ag/gemini-3.8-flash-high'),
+   'Banjir setinggi dada di Tanjung Duren. Warga mengungsi ke musala, butuh selimut, popok, dan air bersih.',
+   st_setsrid(st_makepoint(106.7931,-6.1681),4326)::geography, 15,'Tanjung Duren', now() - interval '6 days', true,'water',0.88,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000008','c0000000-0000-4000-8000-000000000008',
    'e0000000-0000-4000-8000-000000000002','f9315f1c-0a82-4878-afb6-fdd42beac9af',
-   'Kios saya ikut terbakar. Sekarang saya dan keluarga di posko masjid, butuh perlengkapan tidur dan susu untuk bayi.',
-   st_setsrid(st_makepoint(100.3699,-0.3052),4326)::geography, 20,'Belakang Pasar', now() - interval '4 days 20 hours', false,'shelter',0.83,'ag/gemini-3.8-flash-high'),
+   'Saya kehilangan kontak dengan saudara di dalam. Posko keluarga di seberang lapas butuh selimut dan makanan.',
+   st_setsrid(st_makepoint(106.6326,-6.1780),4326)::geography, 20,'Cipondoh', now() - interval '4 days 20 hours', false,'shelter',0.83,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000007','c0000000-0000-4000-8000-000000000007',
    'e0000000-0000-4000-8000-000000000005','b05ed853-3953-43cf-a671-a8997fe1361f',
-   'Posko di lapangan desa sudah berdiri, tapi tenda masih kurang. Anak-anak butuh pakaian kering.',
-   st_setsrid(st_makepoint(116.2830,-8.3520),4326)::geography, 40,'Lapangan Tanjung', now() - interval '5 days 18 hours', false,'clothing',0.81,'ag/gemini-3.8-flash-high')
+   'Posko musala sudah penuh, tenda darurat masih kurang. Anak-anak butuh pakaian kering dan susu.',
+   st_setsrid(st_makepoint(106.7950,-6.1690),4326)::geography, 40,'Tanjung Duren', now() - interval '5 days 18 hours', false,'clothing',0.81,'ag/gemini-3.8-flash-high')
 on conflict (id) do nothing;
 
 insert into post_media (post_id, r2_key, mime_type, size_bytes, width, height, sort_order)
@@ -152,7 +190,7 @@ values
   ('f0000000-0000-4000-8000-000000000006','posts/2026/11/jakarta-flood-tanjung-duren.webp','image/webp',670692,1600,2133,0)
 on conflict (r2_key) do nothing;
 
--- ============================================================ 5. dukungan
+-- ============================================================ 6. dukungan
 -- 62 dukungan untuk event 1, 54 untuk event 5, 12 untuk event 3.
 insert into event_likes (event_id, profile_id)
 select 'e0000000-0000-4000-8000-000000000001',
@@ -179,7 +217,7 @@ insert into event_likes (event_id, profile_id) values
   ('e0000000-0000-4000-8000-000000000004','f9315f1c-0a82-4878-afb6-fdd42beac9af')
 on conflict do nothing;
 
--- ============================================================ 6. penanggung jawab
+-- ============================================================ 7. penanggung jawab
 insert into pic_assignments (id, event_id, distributor_id, status, pitch, applied_at, reviewed_by, reviewed_at, approved_at)
 values
   ('d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
@@ -204,22 +242,22 @@ values
    now() - interval '5 hours', null, null, null)
 on conflict (event_id, distributor_id) do nothing;
 
--- ============================================================ 7. posko, kebutuhan, stok
+-- ============================================================ 8. posko, kebutuhan, stok
 insert into relief_posts (id, event_id, name, address, location, radius_m, headcount, capacity, origin, status, surveyed_at, created_by)
 values
   ('a0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
-   'Posko Gedung Serbaguna','Jl. Ahmad Yani, Pasar Atas',
-   st_setsrid(st_makepoint(100.3695,-0.3058),4326)::geography, 300, 340, 400,'distributor','active',
+   'Posko Keluarga Lapas','Jl. Raya Cipondoh, seberang gerbang lapas',
+   st_setsrid(st_makepoint(106.6322,-6.1786),4326)::geography, 300, 340, 400,'distributor','active',
    now() - interval '4 days','a9fa8043-2f56-41da-9e3c-c38d29a6b29d'),
 
   ('a0000000-0000-4000-8000-000000000002','e0000000-0000-4000-8000-000000000002',
-   'Posko Masjid Raya','Jl. Sudirman, belakang pasar',
-   st_setsrid(st_makepoint(100.3701,-0.3049),4326)::geography, 250, 180, 220,'distributor','active',
+   'Posko Musholla Al-Ikhlas','Jl. KH Hasyim Ashari, gang samping',
+   st_setsrid(st_makepoint(106.6329,-6.1778),4326)::geography, 250, 180, 220,'distributor','active',
    now() - interval '3 days','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e'),
 
   ('a0000000-0000-4000-8000-000000000003','e0000000-0000-4000-8000-000000000004',
-   'Posko Balai Desa Cugenang','Jl. Raya Cugenang',
-   st_setsrid(st_makepoint(107.1350,-6.8171),4326)::geography, 300, 260, 300,'reporter','active',
+   'Posko RW 03 Tanjung Mas','Jl. Ronggolawe, dekat pelabuhan',
+   st_setsrid(st_makepoint(110.4269,-6.9499),4326)::geography, 300, 260, 300,'reporter','active',
    now() - interval '3 days','5165d200-f27e-49c6-b740-23c7add9c7ba'),
 
   -- posko yang belum disurvei: tidak muncul di halaman publik
@@ -236,7 +274,7 @@ values
   ('b0000000-0000-4000-8000-000000000003','a0000000-0000-4000-8000-000000000001','Pakaian anak','clothing','set',200,0,2,'open',null),
   ('b0000000-0000-4000-8000-000000000004','a0000000-0000-4000-8000-000000000001','Makanan siap saji','food','porsi',1000,600,1,'partial',null),
   ('b0000000-0000-4000-8000-000000000005','a0000000-0000-4000-8000-000000000001','Masker','health','box',50,50,3,'fulfilled',null),
-  ('b0000000-0000-4000-8000-000000000006','a0000000-0000-4000-8000-000000000002','Perlengkapan tidur','shelter','set',180,60,1,'partial',null),
+  ('b0000000-0000-4000-8000-000000000006','a0000000-0000-4000-8000-000000000002','Selimut keluarga','shelter','set',180,60,1,'partial',null),
   ('b0000000-0000-4000-8000-000000000007','a0000000-0000-4000-8000-000000000002','Susu bayi','food','kaleng',120,40,1,'partial',null),
   ('b0000000-0000-4000-8000-000000000008','a0000000-0000-4000-8000-000000000002','Obat luka bakar','health','box',30,10,2,'partial',null),
   ('b0000000-0000-4000-8000-000000000009','a0000000-0000-4000-8000-000000000003','Beras','food','karung',150,45,1,'partial',null),
@@ -263,7 +301,47 @@ select s.id, s.quantity, 'opname'::stock_reason, 'Stok awal hasil survei', s.upd
    and s.quantity > 0
    and not exists (select 1 from stock_logs l where l.stock_id = s.id);
 
--- ============================================================ 8. donasi
+-- ============================================================ 9. penyelarasan isi post & posko
+-- Teks dan koordinat post/posko diselaraskan dengan event di atas, supaya isi
+-- tidak menyebut bencana atau kota yang berbeda dari fotonya.
+update posts as p set
+  body = v.body, location = v.location, place_label = v.place_label
+from (values
+  ('f0000000-0000-4000-8000-000000000003'::uuid,
+   'Kebakaran Lapas Tangerang, blok hunian habis. Keluarga korban menunggu di depan gerbang dan butuh air minum serta alas duduk.',
+   st_setsrid(st_makepoint(106.6320,-6.1784),4326)::geography, 'Cipondoh'),
+  ('f0000000-0000-4000-8000-000000000004'::uuid,
+   'Hujan abu sejak subuh, atap rumah tebal abu. Warga butuh masker, air bersih, dan susu untuk anak-anak.',
+   st_setsrid(st_makepoint(110.4462,-7.5408),4326)::geography, 'Kaliurang'),
+  ('f0000000-0000-4000-8000-000000000005'::uuid,
+   'Rob merendam jalan pelabuhan sejak pagi. Warga di RT 3 belum bisa keluar rumah, butuh makanan dan obat-obatan.',
+   st_setsrid(st_makepoint(110.4266,-6.9496),4326)::geography, 'Tanjung Mas'),
+  ('f0000000-0000-4000-8000-000000000006'::uuid,
+   'Banjir setinggi dada di Tanjung Duren. Warga mengungsi ke musala, butuh selimut, popok, dan air bersih.',
+   st_setsrid(st_makepoint(106.7931,-6.1681),4326)::geography, 'Tanjung Duren'),
+  ('f0000000-0000-4000-8000-000000000007'::uuid,
+   'Posko musala sudah penuh, tenda darurat masih kurang. Anak-anak butuh pakaian kering dan susu.',
+   st_setsrid(st_makepoint(106.7950,-6.1690),4326)::geography, 'Tanjung Duren'),
+  ('f0000000-0000-4000-8000-000000000008'::uuid,
+   'Saya kehilangan kontak dengan saudara di dalam. Posko keluarga di seberang lapas butuh selimut dan makanan.',
+   st_setsrid(st_makepoint(106.6326,-6.1780),4326)::geography, 'Cipondoh')
+) as v(id, body, location, place_label)
+where p.id = v.id;
+
+update relief_posts as r set
+  name = v.name, address = v.address, location = v.location
+from (values
+  ('a0000000-0000-4000-8000-000000000001'::uuid, 'Posko Keluarga Lapas', 'Jl. Raya Cipondoh, seberang gerbang lapas',
+   st_setsrid(st_makepoint(106.6322,-6.1786),4326)::geography),
+  ('a0000000-0000-4000-8000-000000000002'::uuid, 'Posko Musholla Al-Ikhlas', 'Jl. KH Hasyim Ashari, gang samping',
+   st_setsrid(st_makepoint(106.6329,-6.1778),4326)::geography),
+  ('a0000000-0000-4000-8000-000000000003'::uuid, 'Posko RW 03 Tanjung Mas', 'Jl. Ronggolawe, dekat pelabuhan',
+   st_setsrid(st_makepoint(110.4269,-6.9499),4326)::geography)
+) as v(id, name, address, location)
+where r.id = v.id;
+
+
+-- ============================================================ 10. donasi
 insert into donations (id, pic_assignment_id, event_id, posko_id, donor_id, donor_name, is_anonymous, amount, status, midtrans_order_id, payment_type, paid_at, claim_token, guest_email)
 values
   ('90000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
@@ -298,7 +376,7 @@ on conflict (id) do nothing;
 
 update donations set expires_at = now() + interval '15 minutes' where id = '90000000-0000-4000-8000-000000000009';
 
--- ============================================================ 9. pencairan + bukti belanja
+-- ============================================================ 11. pencairan + bukti belanja
 -- Pencairan dibuat berstatus 'requested' lebih dulu, lalu di-update ke 'transferred'.
 -- Kalau langsung di-insert sebagai 'transferred', trigger ledger tidak pernah jalan
 -- dan saldo penanggung jawab akan tampak lebih besar dari yang sebenarnya.
@@ -358,7 +436,7 @@ values
    'Beras datang 35 karung, kurang 5 karung dari catatan.')
 on conflict (expense_id, profile_id) do nothing;
 
--- ============================================================ 10. moderasi & verifikasi
+-- ============================================================ 12. moderasi & verifikasi
 insert into content_reports (id, reporter_id, event_id, reason, note, status)
 values
   ('60000000-0000-4000-8000-000000000001','18f473eb-851c-4c51-917f-f3bda576c9b2',

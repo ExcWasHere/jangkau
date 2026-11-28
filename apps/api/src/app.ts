@@ -7,13 +7,10 @@ import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./env.js";
 import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
+import { eventRoutes } from "./modules/events/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
 import { postRoutes } from "./modules/posts/routes.js";
-import { reportRoutes } from "./modules/reports/routes.js";
 import { uploadRoutes } from "./modules/uploads/routes.js";
-import { adminOrganizationRoutes, organizationRoutes } from "./modules/organizations/routes.js";
-import { campaignRoutes, trancheRoutes } from "./modules/campaigns/routes.js";
-import { stockRoutes } from "./modules/stock/routes.js";
 
 const app = new Hono<AppEnv>();
 
@@ -59,15 +56,10 @@ api.get("/health", (c) =>
 // tanpa kredensial database.
 api.use("*", requireSupabase);
 
-api.route("/me", meRoutes);
+api.route("/events", eventRoutes);
 api.route("/posts", postRoutes);
-api.route("/reports", reportRoutes);
 api.route("/uploads", uploadRoutes);
-api.route("/organizations", organizationRoutes);
-api.route("/admin/organizations", adminOrganizationRoutes);
-api.route("/campaigns", campaignRoutes);
-api.route("/tranches", trancheRoutes);
-api.route("/stock", stockRoutes);
+api.route("/me", meRoutes);
 
 app.route("/api/v1", api);
 

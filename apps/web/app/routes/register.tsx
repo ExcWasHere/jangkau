@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router";
 
 import { isSupabaseConfigured } from "~/shared/lib/env";
 import { useRedirectIfAuthenticated } from "~/features/auth/session";
+import type { AccountType, DistributorLabel } from "@jangkau/shared";
+
 import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 
 export default function Register() {
@@ -15,6 +17,8 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("resident");
+  const [label, setLabel] = useState<DistributorLabel>("volunteer");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,13 +30,16 @@ export default function Register() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName, phone } },
+        options: {
+          data: { full_name: fullName, phone, account_type: accountType },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
       });
       if (signUpError) throw signUpError;
 
       // Bila konfirmasi email dimatikan, sesi langsung tersedia.
       if (data.session) {
-        navigate("/laporan", { replace: true });
+        navigate(accountType === "distributor" ? "/saya" : "/", { replace: true });
         return;
       }
       setDone(true);
@@ -66,8 +73,7 @@ export default function Register() {
         </Link>
         <h1 className="mt-6 text-2xl font-bold">Daftar akun</h1>
         <p className="mt-1 text-sm text-muted">
-          Akun pelapor bisa langsung melapor. Akun organisasi perlu verifikasi admin sebelum bisa
-          membuka donasi.
+          Pilih peran utamamu. Keduanya bisa melaporkan bencana dan berdonasi.
         </p>
       </div>
 
@@ -79,6 +85,84 @@ export default function Register() {
       )}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-medium">Aku mendaftar sebagai</legend>
+
+          <label
+            className={`cursor-pointer rounded-xl border px-4 py-3 ${
+              accountType === "resident" ? "border-brand bg-brand-soft" : "border-line"
+            }`}
+          >
+            <input
+              type="radio"
+              name="accountType"
+              value="resident"
+              checked={accountType === "resident"}
+              onChange={() => setAccountType("resident")}
+              className="sr-only"
+            />
+            <span className="block text-[15px] font-semibold">Warga</span>
+            <span className="mt-0.5 block text-[13px] text-muted">
+              Laporkan kondisi bencana di sekitarmu dan bantu lewat donasi.
+            </span>
+          </label>
+
+          <label
+            className={`cursor-pointer rounded-xl border px-4 py-3 ${
+              accountType === "distributor" ? "border-brand bg-brand-soft" : "border-line"
+            }`}
+          >
+            <input
+              type="radio"
+              name="accountType"
+              value="distributor"
+              checked={accountType === "distributor"}
+              onChange={() => setAccountType("distributor")}
+              className="sr-only"
+            />
+            <span className="block text-[15px] font-semibold">Penyalur Bantuan</span>
+            <span className="mt-0.5 block text-[13px] text-muted">
+              Kelola posko dan salurkan bantuan ke lokasi bencana.
+            </span>
+          </label>
+
+          <p className="text-[12px] text-muted">
+            Keduanya bisa melaporkan bencana dan berdonasi. Penyalur bantuan bisa mengajukan diri
+            sebagai penanggung jawab setelah terverifikasi.
+          </p>
+        </fieldset>
+
+        {accountType === "distributor" ? (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-medium">Jenis penyalur</legend>
+            {(
+              [
+                ["organization", "Organisasi Tanggap Bencana", "Siapkan akta, SK, dan KTP penanggung jawab"],
+                ["volunteer", "Relawan", "Siapkan KTP dan bukti kegiatan"],
+                ["creator", "Kreator", "Siapkan tautan sosial dan statistik pengikut"],
+              ] as const
+            ).map(([value, title, hint]) => (
+              <label
+                key={value}
+                className={`cursor-pointer rounded-lg border px-3 py-2 ${
+                  label === value ? "border-brand bg-brand-soft" : "border-line"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="label"
+                  value={value}
+                  checked={label === value}
+                  onChange={() => setLabel(value)}
+                  className="sr-only"
+                />
+                <span className="block text-[14px] font-semibold">{title}</span>
+                <span className="block text-[12px] text-muted">{hint}</span>
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
+
         <label className="flex flex-col gap-1 text-sm font-medium">
           Nama lengkap
           <input

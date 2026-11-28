@@ -1,11 +1,98 @@
 /**
  * Enum & label yang dipakai bersama oleh API dan web.
+ *
  * Harus identik dengan `create type ... as enum` di
- * packages/db/migrations/0001_init.sql — ubah keduanya bersamaan.
+ * packages/db/migrations/0002_community_feed.sql. Ubah keduanya bersamaan,
+ * lalu jalankan `bun run db:types` untuk menyegarkan tipe database.
+ *
+ * Label bahasa Indonesia dan Inggris tinggal di `apps/web/app/i18n`, bukan di
+ * sini: API tidak pernah merender teks UI, dan satu sumber istilah lebih mudah
+ * dijaga daripada dua daftar yang harus disamakan manual.
  */
 
-export const APP_ROLES = ["resident", "organization", "admin"] as const;
-export type AppRole = (typeof APP_ROLES)[number];
+// ---------------------------------------------------------------- akun
+
+/** Pilihan saat registrasi. Bukan pagar hak akses: keduanya boleh lapor & donasi. */
+export const ACCOUNT_TYPES = ["resident", "distributor"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+/** Lencana otomatis dari kontribusi, bukan peran. */
+export const BADGE_KINDS = ["reporter", "funder"] as const;
+export type BadgeKind = (typeof BADGE_KINDS)[number];
+
+export const DISTRIBUTOR_LABELS = ["organization", "volunteer", "creator"] as const;
+export type DistributorLabel = (typeof DISTRIBUTOR_LABELS)[number];
+
+export const VERIFICATION_STATUSES = [
+  "unverified",
+  "pending",
+  "verified",
+  "rejected",
+  "suspended",
+] as const;
+export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+
+export const VERIFICATION_DOC_KINDS = [
+  "legal_deed",
+  "sk_kemenkumham",
+  "pic_identity",
+  "pic_selfie",
+  "org_letter",
+  "social_profile",
+  "follower_stats",
+  "field_proof",
+  "other",
+] as const;
+export type VerificationDocKind = (typeof VERIFICATION_DOC_KINDS)[number];
+
+export const DOC_REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
+export type DocReviewStatus = (typeof DOC_REVIEW_STATUSES)[number];
+
+// ---------------------------------------------------------------- bencana
+
+export const DISASTER_TYPES = [
+  "flood",
+  "flash_flood",
+  "landslide",
+  "volcanic_eruption",
+  "earthquake",
+  "tsunami",
+  "fire",
+  "storm",
+  "drought",
+  "other",
+] as const;
+export type DisasterType = (typeof DISASTER_TYPES)[number];
+
+export const EVENT_STATUSES = ["open", "monitoring", "resolved", "archived"] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+
+/** Section feed dihitung dari data, tidak disimpan. Lihat `v_event_feed`. */
+export const FEED_SECTIONS = ["terbaru", "leaderboard", "pantau"] as const;
+export type FeedSection = (typeof FEED_SECTIONS)[number];
+
+export const POST_STATUSES = ["published", "hidden", "removed"] as const;
+export type PostStatus = (typeof POST_STATUSES)[number];
+
+export const MODERATION_REASONS = [
+  "hoax",
+  "duplicate",
+  "irrelevant",
+  "graphic",
+  "other",
+] as const;
+export type ModerationReason = (typeof MODERATION_REASONS)[number];
+
+export const MODERATION_STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
+export type ModerationStatus = (typeof MODERATION_STATUSES)[number];
+
+// ---------------------------------------------------------------- posko
+
+export const POSKO_STATUSES = ["draft", "active", "closed"] as const;
+export type PoskoStatus = (typeof POSKO_STATUSES)[number];
+
+export const POSKO_ORIGINS = ["reporter", "distributor"] as const;
+export type PoskoOrigin = (typeof POSKO_ORIGINS)[number];
 
 export const NEED_CATEGORIES = [
   "food",
@@ -15,45 +102,47 @@ export const NEED_CATEGORIES = [
   "clothing",
   "sanitation",
   "energy",
+  "education",
   "other",
 ] as const;
 export type NeedCategory = (typeof NEED_CATEGORIES)[number];
 
-export const SEVERITY_LEVELS = ["low", "medium", "high", "critical"] as const;
-export type SeverityLevel = (typeof SEVERITY_LEVELS)[number];
+export const NEED_STATUSES = ["open", "partial", "fulfilled", "cancelled"] as const;
+export type NeedStatus = (typeof NEED_STATUSES)[number];
 
-export const REPORT_STATUSES = [
-  "pending",
-  "validated",
-  "eligible",
-  "taken_up",
+// ---------------------------------------------------------------- penyaluran
+
+export const ASSIGNMENT_STATUSES = ["applied", "approved", "rejected", "revoked"] as const;
+export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
+
+export const DONATION_STATUSES = ["pending", "paid", "expired", "failed", "refunded"] as const;
+export type DonationStatus = (typeof DONATION_STATUSES)[number];
+
+export const LEDGER_ENTRY_KINDS = [
+  "donation_in",
+  "disbursement_out",
+  "refund",
+  "fee",
+] as const;
+export type LedgerEntryKind = (typeof LEDGER_ENTRY_KINDS)[number];
+
+export const DISBURSEMENT_STATUSES = [
+  "locked",
+  "requested",
+  "approved",
+  "transferred",
   "rejected",
-  "merged",
 ] as const;
-export type ReportStatus = (typeof REPORT_STATUSES)[number];
+export type DisbursementStatus = (typeof DISBURSEMENT_STATUSES)[number];
 
-export const CAMPAIGN_STATUSES = [
-  "draft",
-  "awaiting_confirmation",
-  "active",
-  "funded",
-  "in_progress",
-  "completed",
-  "cancelled",
-] as const;
-export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+export const EXPENSE_STATUSES = ["submitted", "confirmed", "disputed"] as const;
+export type ExpenseStatus = (typeof EXPENSE_STATUSES)[number];
 
-export const TRANCHES_STATUSES = [
-  "planned",
-  "receipts_submitted",
-  "goods_confirmed",
-  "released",
-  "disputed",
-] as const;
-export type TrancheStatus = (typeof TRANCHES_STATUSES)[number];
+export const RECEIPT_DECISIONS = ["received", "partial", "not_received"] as const;
+export type ReceiptDecision = (typeof RECEIPT_DECISIONS)[number];
 
 export const STOCK_REASONS = [
-  "report",
+  "need_update",
   "donation",
   "distribution",
   "adjustment",
@@ -61,55 +150,17 @@ export const STOCK_REASONS = [
 ] as const;
 export type StockReason = (typeof STOCK_REASONS)[number];
 
-export const MEDIA_KINDS = [
-  "report_photo",
-  "receipt",
-  "org_document",
-  "campaign_photo",
-  "avatar",
-] as const;
+// ---------------------------------------------------------------- media
+
+/**
+ * `post_photo` dan `receipt` masuk bucket publik; `verification_doc` masuk
+ * bucket privat dan hanya bisa dibaca lewat signed URL admin.
+ */
+export const MEDIA_KINDS = ["post_photo", "receipt", "verification_doc", "avatar"] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
-/** Label UI (Bahasa Indonesia). Kunci = nilai enum di DB. */
-export const NEED_CATEGORY_LABELS: Record<NeedCategory, string> = {
-  food: "Makanan",
-  water: "Air bersih",
-  health: "Obat & kesehatan",
-  shelter: "Tempat tinggal",
-  clothing: "Pakaian",
-  sanitation: "Sanitasi",
-  energy: "Listrik & penerangan",
-  other: "Lainnya",
-};
-
-export const SEVERITY_LABELS: Record<SeverityLevel, string> = {
-  low: "Rendah",
-  medium: "Sedang",
-  high: "Tinggi",
-  critical: "Kritis",
-};
-
-export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
-  pending: "Menunggu validasi",
-  validated: "Tervalidasi",
-  eligible: "Siap diambil organisasi",
-  taken_up: "Sedang ditangani",
-  rejected: "Ditolak",
-  merged: "Digabung",
-};
-
-export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
-  draft: "Draf",
-  awaiting_confirmation: "Menunggu konfirmasi pelapor",
-  active: "Menerima donasi",
-  funded: "Target tercapai",
-  in_progress: "Penyaluran",
-  completed: "Selesai",
-  cancelled: "Dibatalkan",
-};
-
-/** Batas upload media, dipakai di presign API dan validasi client. */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_PHOTOS_PER_POST = 4;
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const ALLOWED_DOCUMENT_TYPES = ["application/pdf"] as const;
