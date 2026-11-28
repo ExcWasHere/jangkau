@@ -6,6 +6,7 @@ import type { AppEnv } from "../../env.js";
 import { raiseDbError } from "../../shared/db-errors.js";
 import { badRequest, conflict, notFound } from "../../shared/errors.js";
 import { requireAdmin, requireAuth } from "../../shared/middleware/auth.js";
+import { notify } from "../notifications/routes.js";
 import { presignGet } from "../../shared/r2.js";
 import { adminClient } from "../../shared/supabase.js";
 
@@ -365,7 +366,7 @@ adminRoutes.post("/content-reports/:id", async (c) => {
 
   const { data: report, error: reportError } = await admin
     .from("content_reports")
-    .select("id, event_id, post_id")
+    .select("id, event_id, post_id, reporter_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -383,13 +384,33 @@ adminRoutes.post("/content-reports/:id", async (c) => {
 
   if (error) raiseDbError(error);
 
-  // Menyembunyikan bukan menghapus: data tetap ada untuk audit.
+  // Menyembunyikan bukan menghapus: data tetap ada untuk audit. Berita
+  // berstatus `archived` hilang dari feed dan dari halaman detail, tapi baris
+  // dan seluruh riwayatnya tetap utuh.
   if (body.decision === "actioned" && body.hideEvent && report.event_id) {
     const { error: hideError } = await admin
       .from("disaster_events")
       .update({ status: "archived" })
       .eq("id", report.event_id);
     if (hideError) raiseDbError(hideError);
+  }
+
+  // Pelapor diberi tahu keputusannya: tanpa ini laporan terasa masuk lubang
+  // hitam, dan orang berhenti melaporkan.
+  if (report.reporter_id) {
+    await notify(c.env, {
+      profileId: report.reporter_id,
+      kind: `content_report_${body.decision}`,
+      title:
+        body.decision === "actioned"
+          ? "Laporan kontenmu ditindaklanjuti"
+          : "Laporan kontenmu ditinjau",
+      body:
+        body.decision === "actioned"
+          ? "Terima kasih. Konten yang kamu laporkan sudah disembunyikan dari daftar publik."
+          : "Setelah ditinjau, konten yang kamu laporkan tidak melanggar aturan. Terima kasih sudah membantu.",
+      link: report.event_id ? `/bencana/${report.event_id}` : null,
+    });
   }
 
   return c.json({ ok: true, status: body.decision });
@@ -526,6 +547,39 @@ adminRoutes.post("/disbursements/:id/decision", async (c) => {
   });
 
   return c.json({ ok: true, status: patch.status });
+});
+
+/**
+ * Jejak audit: siapa memutuskan apa dan kapan.
+ *
+ * Hanya admin. Isinya dipakai saat ditanya "kenapa berita ini hilang" atau
+ * "siapa yang menyetujui pencairan ini" — pertanyaan yang pasti muncul saat
+ * pitch, dan jawabannya harus ada, bukan diingat.
+ */
+adminRoutes.get("/audit-logs", async (c) => {
+  const admin = adminClient(c.env);
+  const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
+
+  const { data, error } = await admin
+    .from("audit_logs")
+    .select("id, actor_id, action, entity, entity_id, payload, created_at, profiles(display_name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) raiseDbError(error);
+
+  return c.json({
+    items: (data ?? []).map((row) => ({
+      id: row.id,
+      action: row.action,
+      entity: row.entity,
+      entityId: row.entity_id,
+      payload: row.payload,
+      createdAt: row.created_at,
+      actorName:
+        (row.profiles as unknown as { display_name: string } | null)?.display_name ?? "—",
+    })),
+  });
 });
 
 /** Ringkasan untuk kartu di beranda admin. */

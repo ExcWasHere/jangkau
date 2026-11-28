@@ -621,6 +621,36 @@ on conflict (id) do update set
 
 commit;
 
+-- ============================================================ 13. notifikasi demo
+-- Beberapa notifikasi supaya lencana di header dan halaman /notifikasi berisi
+-- saat demo, dan supaya laporan konten yang menunggu bisa ditindaklanjuti.
+insert into content_reports (id, reporter_id, event_id, reason, note, status)
+values
+  ('60000000-0000-4000-8000-000000000002','d44d757e-affa-477e-a72a-ef5e47336e04',
+   'e0000000-0000-4000-8000-000000000003','irrelevant',
+   'Judul menyebut gunung yang berbeda dari foto. Mohon diperiksa.','open')
+on conflict (id) do nothing;
+
+insert into notifications (id, profile_id, kind, title, body, link, read_at)
+values
+  ('b0000000-0000-4000-8000-000000000001','4f0da1a0-677b-42d7-a77b-baf8a9d56a6e',
+   'verification_approved','Verifikasi disetujui',
+   'Akun penyalur kamu sekarang terverifikasi. Kamu bisa mengajukan diri sebagai penanggung jawab penyaluran.',
+   '/dashboard', null),
+  ('b0000000-0000-4000-8000-000000000002','a9fa8043-2f56-41da-9e3c-c38d29a6b29d',
+   'donation_paid','Donasi baru masuk',
+   'Ada donasi baru untuk posko yang kamu kelola. Lihat rinciannya di halaman berita.',
+   '/bencana/e0000000-0000-4000-8000-000000000002', null),
+  ('b0000000-0000-4000-8000-000000000003','1c414d44-911d-4860-a56f-db8e5c43fa2e',
+   'content_report_dismissed','Laporan kontenmu ditinjau',
+   'Setelah ditinjau, konten yang kamu laporkan tidak melanggar aturan. Terima kasih sudah membantu.',
+   '/bencana/e0000000-0000-4000-8000-000000000003', now() - interval '1 day')
+on conflict (id) do update set
+  kind = excluded.kind,
+  title = excluded.title,
+  body = excluded.body,
+  link = excluded.link;
+
 -- ============================================================ ringkasan
 select 'event' as entitas, count(*) as jumlah from disaster_events
 union all select 'post', count(*) from posts

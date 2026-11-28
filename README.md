@@ -236,6 +236,30 @@ menampilkan label "Simulasi" pada setiap tahap.
 
 ---
 
+## Moderasi
+
+Pelapor dan pengunjung login bisa melaporkan berita lewat tombol **Laporkan
+konten** di halaman berita. Laporan masuk antrean admin dengan lima alasan
+(hoaks, duplikat, tidak relevan, grafis, lainnya) dan catatan opsional.
+
+Keputusan admin:
+
+| Keputusan | Efek |
+|---|---|
+| **Sembunyikan** | Berita berstatus `archived`: hilang dari feed dan detail (404), baris dan seluruh riwayatnya tetap utuh untuk audit |
+| **Abaikan** | Status laporan `dismissed`, berita tidak berubah |
+
+Pelapor menerima notifikasi berisi keputusan itu — tanpa ini, laporan terasa
+masuk lubang hitam dan orang berhenti melaporkan.
+
+## Notifikasi
+
+Ditulis sebagai efek samping aksi server (verifikasi, pengajuan PIC, donasi,
+pencairan, moderasi), tidak pernah bisa dibuat pengguna. Lencana di header
+menyegarkan diri tiap 60 detik dan seketika setelah pengguna menandai dibaca.
+
+---
+
 ## Kredit foto demo
 
 Foto di `post_media` berasal dari Wikimedia Commons, dipotong ke 1600 px dan
@@ -278,6 +302,7 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 | `/donasi/:id` | publik + token klaim | QR, hitung mundur, modal terima kasih |
 | `/pencairan?assignment=<id>` | penanggung jawab | Ajukan pencairan, unggah bukti belanja, rekap dana |
 | `/konfirmasi` | pelapor | Bukti belanja yang menunggu konfirmasi |
+| `/notifikasi` | login | Kabar verifikasi, PIC, donasi, pencairan, moderasi |
 | `/unggah` | login | Unggah laporan + foto + GPS |
 | `/saya` | login | Profil, lencana, status verifikasi penyalur |
 | `/dashboard` | login | Dasbor penyalur: dokumen verifikasi, pengajuan PIC, profil |
@@ -309,7 +334,8 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Verifikasi penyalur (dokumen per label, centang otomatis setelah lengkap) | jalan |
 | Pengajuan penanggung jawab + persetujuan admin | jalan |
 | Posko: buat, survei, kebutuhan, stok dengan log | jalan |
-| Admin: antrean verifikasi, PIC, laporan konten | jalan |
+| Admin: antrean verifikasi, PIC, laporan konten, pencairan, jejak audit | jalan |
+| Lapor konten dari UI, sembunyikan berita, notifikasi dalam aplikasi | jalan |
 | Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
 | Pencairan bertahap (maks 40%/tahap), bukti belanja, konfirmasi pelapor | jalan |
 | Midtrans | **mock**: `MIDTRANS_SERVER_KEY` kosong → provider mock berlabel "Simulasi"; isi key untuk beralih ke QRIS sandbox tanpa ubah kode |

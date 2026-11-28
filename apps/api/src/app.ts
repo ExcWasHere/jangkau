@@ -13,6 +13,7 @@ import { distributorRoutes } from "./modules/distributors/routes.js";
 import { donationRoutes } from "./modules/donations/routes.js";
 import { eventRoutes } from "./modules/events/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
+import { notificationRoutes } from "./modules/notifications/routes.js";
 import { picRoutes } from "./modules/pic/routes.js";
 import { poskoRoutes } from "./modules/posko/routes.js";
 import { postRoutes } from "./modules/posts/routes.js";
@@ -73,6 +74,7 @@ api.route("/distributors", distributorRoutes);
 api.route("/donations", donationRoutes);
 api.route("/disbursements", disbursementRoutes);
 api.route("/me", meRoutes);
+api.route("/notifications", notificationRoutes);
 api.route("/admin", adminRoutes);
 
 app.route("/api/v1", api);

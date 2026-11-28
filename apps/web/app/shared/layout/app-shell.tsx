@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router";
 
 import { useMe } from "~/features/auth/use-me";
 import { usePendingClaim } from "~/features/donate/pending-claim";
+import { NotificationBell } from "~/features/notifications/bell";
 import { useAuthState } from "~/features/auth/session";
 import { useT } from "~/i18n";
 import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="ml-auto flex items-center gap-2">
+              <NotificationBell />
               <PreferencesMenu />
 
               {session ? (

@@ -491,6 +491,50 @@ export const id = {
     simulatedNote: "Transfer disimulasikan — tidak ada uang nyata berpindah.",
   },
 
+  report: {
+    title: "Laporkan konten",
+    intro: "Bantu jaga keakuratan. Laporan masuk antrean admin, tidak langsung menghapus konten.",
+    reason: "Alasan",
+    reasonHoax: "Hoaks atau tidak benar",
+    reasonDuplicate: "Duplikat berita lain",
+    reasonIrrelevant: "Tidak relevan dengan bencana",
+    reasonGraphic: "Gambar terlalu grafis",
+    reasonOther: "Lainnya",
+    note: "Catatan (opsional)",
+    notePlaceholder: "Sebutkan bagian mana yang bermasalah",
+    submit: "Kirim laporan",
+    sent: "Laporan terkirim, terima kasih",
+    signIn: "Masuk untuk melaporkan konten.",
+    alreadyReported: "Kamu sudah melaporkan berita ini.",
+  },
+
+  notifications: {
+    title: "Notifikasi",
+    intro: "Kabar tentang laporan, verifikasi, donasi, dan penyaluran yang kamu ikuti.",
+    empty: "Belum ada notifikasi.",
+    markAll: "Tandai semua dibaca",
+    markedAll: "Semua notifikasi ditandai dibaca",
+    unread: "{count} belum dibaca",
+    open: "Buka",
+    badgeLabel: "Notifikasi, {count} belum dibaca",
+    kindVerification: "Verifikasi",
+    kindPic: "Penanggung jawab",
+    kindDonation: "Donasi",
+    kindDisbursement: "Pencairan",
+    kindModeration: "Moderasi",
+    kindOther: "Lainnya",
+  },
+
+  adminAudit: {
+    tab: "Jejak audit",
+    empty: "Belum ada catatan.",
+    action: "Aksi",
+    actor: "Pelaku",
+    entity: "Objek",
+    when: "Waktu",
+    detail: "Rincian",
+  },
+
   guards: {
     unverifiedTitle: "Verifikasi penyalur belum disetujui",
     unverifiedBody:
