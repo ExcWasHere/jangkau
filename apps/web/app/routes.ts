@@ -10,6 +10,8 @@ export default [
   { path: "unggah", file: "routes/unggah.tsx" },
   { path: "saya", file: "routes/saya.tsx" },
   { path: "dashboard", file: "routes/dashboard.tsx" },
+  { path: "pencairan", file: "routes/pencairan.tsx" },
+  { path: "konfirmasi", file: "routes/konfirmasi.tsx" },
   { path: "admin", file: "routes/admin.tsx" },
   { path: "masuk", file: "routes/login.tsx" },
   { path: "daftar", file: "routes/register.tsx" },

@@ -211,6 +211,31 @@ idempoten.
 
 ---
 
+## Alur dana
+
+```
+Donasi masuk (ledger +) → saldo penanggung jawab
+  → ajukan pencairan (maks 40% saldo, tahap berurutan)
+  → admin setujui → admin tandai dicairkan (ledger −, disimulasikan)
+  → penanggung jawab unggah bukti belanja (tidak boleh melebihi nominal tahap)
+  → pelapor konfirmasi diterima / sebagian / tidak diterima (+ catatan)
+  → tahap berikutnya terbuka setelah ada bukti yang dikonfirmasi
+```
+
+Aturan ini ditegakkan trigger database, bukan hanya UI:
+
+| Aturan | Trigger |
+|---|---|
+| Pencairan ≤ 40% saldo, tidak melebihi saldo | `fn_guard_disbursement` |
+| Tahap n>1 butuh bukti terkonfirmasi di tahap n−1 | `fn_guard_disbursement` |
+| Konfirmasi hanya oleh pelapor event, bukan penanggung jawab | `fn_guard_expense_confirmation` |
+| Entri ledger tidak bisa dobel per pencairan | unique index parsial |
+
+Transfer uang **disimulasikan**: tidak ada dana nyata berpindah, dan UI
+menampilkan label "Simulasi" pada setiap tahap.
+
+---
+
 ## Kredit foto demo
 
 Foto di `post_media` berasal dari Wikimedia Commons, dipotong ke 1600 px dan
@@ -251,6 +276,8 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 | `/bencana/:id` | publik | Detail berita, pengunggah, penanggung jawab, posko, donasi terbaru |
 | `/bencana/:id/donasi` | publik | Form donasi: pilih PIC, nominal, anonim |
 | `/donasi/:id` | publik + token klaim | QR, hitung mundur, modal terima kasih |
+| `/pencairan?assignment=<id>` | penanggung jawab | Ajukan pencairan, unggah bukti belanja, rekap dana |
+| `/konfirmasi` | pelapor | Bukti belanja yang menunggu konfirmasi |
 | `/unggah` | login | Unggah laporan + foto + GPS |
 | `/saya` | login | Profil, lencana, status verifikasi penyalur |
 | `/dashboard` | login | Dasbor penyalur: dokumen verifikasi, pengajuan PIC, profil |
@@ -284,7 +311,7 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Posko: buat, survei, kebutuhan, stok dengan log | jalan |
 | Admin: antrean verifikasi, PIC, laporan konten | jalan |
 | Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
-| Pencairan bertahap, bukti belanja, konfirmasi pelapor | **belum** — Fase 6 |
+| Pencairan bertahap (maks 40%/tahap), bukti belanja, konfirmasi pelapor | jalan |
 | Midtrans | **mock**: `MIDTRANS_SERVER_KEY` kosong → provider mock berlabel "Simulasi"; isi key untuk beralih ke QRIS sandbox tanpa ubah kode |
 | Antrean offline IndexedDB | **belum** — Fase 8 |
 | i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |
