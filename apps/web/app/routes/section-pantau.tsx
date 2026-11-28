@@ -1,10 +1,12 @@
 import type { Route } from "./+types/section-pantau";
 
 import { fetchFeed } from "~/features/feed/api";
-import { SECTION_COPY, SectionPage } from "~/features/feed/section-page";
+import { SectionPage } from "~/features/feed/section-page";
+import { translatorFromMatches } from "~/i18n";
 
-export function meta({}: Route.MetaArgs) {
-  return [{ title: `${SECTION_COPY.pantau.title} — Jangkau` }];
+export function meta({ matches }: Route.MetaArgs) {
+  const t = translatorFromMatches(matches);
+  return [{ title: `${t("feed.pantauTitle")} — ${t("meta.eventTitleSuffix")}` }];
 }
 
 export async function loader() {

@@ -1,21 +1,22 @@
 import { Link } from "react-router";
 
+import { useT } from "~/i18n";
 import type { FeedItem } from "./api";
 import { relativeTime } from "./api";
 
-const SECTION_LABEL: Record<string, string> = {
-  leaderboard: "LEADERBOARD",
-  pantau: "PANTAU",
-  terbaru: "TERBARU",
-};
-
-const SECTION_STYLE: Record<string, string> = {
-  leaderboard: "bg-brand-soft text-brand",
-  pantau: "bg-ok/10 text-ok",
-  terbaru: "bg-surface text-muted",
-};
+const SECTION_KEY = {
+  leaderboard: "feed.sectionLeaderboard",
+  pantau: "feed.sectionPantau",
+  terbaru: "feed.sectionTerbaru",
+} as const;
 
 export function EventCard({ event }: { event: FeedItem }) {
+  const { t, locale } = useT();
+
+  const region =
+    [event.region.regency, event.region.province].filter(Boolean).join(", ") ||
+    t("common.locationUnknown");
+
   return (
     <Link
       to={`/bencana/${event.id}`}
@@ -27,35 +28,30 @@ export function EventCard({ event }: { event: FeedItem }) {
         {event.coverUrl ? (
           <img
             src={event.coverUrl}
-            alt={`Foto lokasi ${event.title}`}
+            alt={t("feed.photoAlt", { title: event.title })}
             loading="lazy"
             className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[13px] text-muted">
-            Belum ada foto
+            {t("common.noPhoto")}
           </div>
         )}
 
         {/*
           Status penanggung jawab lebih penting daripada nama section: kalau
-          keduanya diletakkan sebaris, label section yang tergeser dan hilang.
-          Section sudah dibaca dari judul rak, jadi badge hanya muncul untuk
-          kartu di rak campuran.
+          keduanya sebaris, label section yang tergeser dan hilang. Section
+          sudah terbaca dari judul rak, jadi badge hanya untuk Leaderboard.
         */}
         <span className="absolute left-3 top-3 rounded-full bg-canvas/90 px-2.5 py-1 text-[11px] font-semibold">
           {event.hasPersonInCharge
-            ? `Sudah ada penanggung jawab · ${event.picCount}`
-            : "Belum ada penanggung jawab"}
+            ? t("feed.hasPic", { count: event.picCount })
+            : t("feed.noPic")}
         </span>
 
         {event.section === "leaderboard" ? (
-          <span
-            className={`absolute bottom-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${
-              SECTION_STYLE.leaderboard
-            }`}
-          >
-            {SECTION_LABEL.leaderboard}
+          <span className="absolute bottom-3 left-3 rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand-text">
+            {t(SECTION_KEY.leaderboard)}
           </span>
         ) : null}
       </div>
@@ -63,16 +59,26 @@ export function EventCard({ event }: { event: FeedItem }) {
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <h3 className="line-clamp-2 text-[16px] font-semibold leading-snug">{event.title}</h3>
         <p className="text-[13px] text-muted">
-          {[event.region.regency, event.region.province].filter(Boolean).join(", ") || "Lokasi tidak disebut"}
-          {" · "}
-          {relativeTime(event.lastActivityAt)}
+          {region} · {relativeTime(event.lastActivityAt, locale)}
         </p>
-        <p className="mt-auto pt-2 text-[13px] text-muted">
-          <span className="font-semibold text-ink">{event.likeCount}</span> dukungan
+        {/*
+          Angka dipisah dari labelnya supaya bisa ditebalkan sendiri, tanpa
+          menyisipkan markup ke dalam kamus. Karena pemisahan itu, pembaca layar
+          akan membacanya tanpa spasi ("55dukungan"); `aria-label` mengembalikan
+          satu kalimat utuh untuk pembaca layar tanpa mengubah tampilan.
+        */}
+        <p
+          className="mt-auto pt-2 text-[13px] text-muted"
+          aria-label={`${event.likeCount} ${t("feed.supportLabel")}, ${event.uploaders.length} ${t("feed.reporterLabel")}, ${event.poskoCount} ${t("feed.poskoLabel")}`}
+        >
+          <span className="font-semibold text-ink">{event.likeCount}</span>{" "}
+          {t("feed.supportLabel")}
           {" · "}
-          <span className="font-semibold text-ink">{event.uploaders.length}</span> pelapor
+          <span className="font-semibold text-ink">{event.uploaders.length}</span>{" "}
+          {t("feed.reporterLabel")}
           {" · "}
-          <span className="font-semibold text-ink">{event.poskoCount}</span> posko
+          <span className="font-semibold text-ink">{event.poskoCount}</span>{" "}
+          {t("feed.poskoLabel")}
         </p>
       </div>
     </Link>

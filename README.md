@@ -253,10 +253,11 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Web: beranda 3 rak, daftar section, detail event, unggah, profil | jalan |
 | Auth: email/password + Google, pilih tipe akun (Warga/Penyalur) | jalan |
 | Tema gelap/terang + token desain dari `design.md` | jalan |
+| Skeleton, toast, menu preferensi, navigasi ponsel | jalan |
 | Verifikasi penyalur, pengajuan PIC, posko, donasi, pencairan | **belum** — Fase 4–6 |
 | Midtrans | **belum** — akan memakai adapter mock di Fase 5 |
 | Antrean offline IndexedDB | **belum** — Fase 8 |
-| i18n ID/EN | **belum** — string masih Indonesia langsung |
+| i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |
 
 ## Keterbatasan yang disengaja
 
