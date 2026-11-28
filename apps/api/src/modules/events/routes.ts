@@ -222,6 +222,36 @@ eventRoutes.get("/:id", optionalAuth, async (c) => {
   });
 });
 
+/**
+ * Donasi terbaru pada satu event, untuk membuktikan bahwa uang benar-benar
+ * masuk. Nama donatur anonim tidak pernah dikirim; nominal tetap tampil karena
+ * transparansi adalah inti produk.
+ */
+eventRoutes.get("/:id/donations", async (c) => {
+  const id = c.req.param("id");
+  const admin = adminClient(c.env);
+
+  const { data, error } = await admin
+    .from("donations")
+    .select("id, amount, donor_name, is_anonymous, paid_at, posko_id")
+    .eq("event_id", id)
+    .eq("status", "paid")
+    .order("paid_at", { ascending: false })
+    .limit(20);
+
+  if (error) raiseDbError(error);
+
+  return c.json({
+    items: (data ?? []).map((row) => ({
+      id: row.id,
+      amount: Number(row.amount),
+      donorName: row.is_anonymous ? null : row.donor_name,
+      paidAt: row.paid_at,
+      poskoId: row.posko_id,
+    })),
+  });
+});
+
 /** Satu akun satu dukungan. Klik kedua menghapus dukungan. */
 eventRoutes.post("/:id/like", requireAuth, async (c) => {
   const id = c.req.param("id");

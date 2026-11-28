@@ -3,6 +3,8 @@ import { Link, data, useLoaderData } from "react-router";
 import type { Route } from "./+types/bencana-detail";
 
 import type { EventDetail } from "~/features/feed/api";
+import type { RecentDonation } from "~/features/donate/api";
+import { fetchRecentDonations } from "~/features/donate/api";
 import { formatRupiah, relativeTime } from "~/features/feed/api";
 import { useAuthState } from "~/features/auth/session";
 import { ApplyPanel, PoskoEditor } from "~/features/event/apply-panel";
@@ -48,6 +50,21 @@ export default function EventDetailPage() {
   const [detail, setDetail] = useState<EventDetail>(loaded.detail);
   const { event } = detail;
   const [like, setLike] = useState({ count: event.likeCount, mine: detail.likedByMe });
+  const [recentDonations, setRecentDonations] = useState<RecentDonation[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchRecentDonations(event.id)
+      .then((result) => {
+        if (active) setRecentDonations(result.items);
+      })
+      .catch(() => {
+        // Daftar donasi pelengkap; kegagalan tidak boleh menggagalkan halaman.
+      });
+    return () => {
+      active = false;
+    };
+  }, [event.id]);
 
   async function refresh() {
     const fresh = await apiFetch<EventDetail>(`/events/${event.id}`, { token });
@@ -124,6 +141,14 @@ export default function EventDetailPage() {
             >
               {like.mine ? t("event.supported") : t("event.support")} · {like.count}
             </button>
+            {detail.personInCharge.length > 0 ? (
+              <Link
+                to={`/bencana/${event.id}/donasi`}
+                className="rounded-lg bg-brand px-4 py-2 text-[14px] font-semibold text-white"
+              >
+                {t("donate.donateButton")}
+              </Link>
+            ) : null}
             <span className="text-[13px] text-muted">
               {t("event.reportersAndPosko", {
                 reporters: event.uploaders.length,
@@ -259,6 +284,36 @@ export default function EventDetailPage() {
             </ul>
           )}
         </section>
+
+        {detail.personInCharge.length > 0 ? (
+          <section aria-labelledby="donasi-terbaru">
+            <h2 id="donasi-terbaru" className="text-[18px] font-semibold">
+              {t("donate.recentTitle")}
+            </h2>
+
+            {recentDonations.length === 0 ? (
+              <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-6 text-[13px] text-muted">
+                {t("donate.recentEmpty")}
+              </p>
+            ) : (
+              <ul className="mt-3 flex flex-col divide-y divide-line rounded-xl border border-line bg-surface">
+                {recentDonations.map((item) => (
+                  <li key={item.id} className="flex flex-wrap items-baseline gap-2 px-4 py-2.5 text-[13px]">
+                    <span className="font-semibold">
+                      {formatRupiah(item.amount, locale)}
+                    </span>
+                    <span className="text-muted">
+                      {item.donorName ?? t("donate.anonymousDonor")}
+                    </span>
+                    <span className="ml-auto text-[12px] text-subtle">
+                      {item.paidAt ? relativeTime(item.paidAt, locale) : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
 
         <p className="text-[13px] text-muted">
           <Link to="/" className="underline hover:text-ink">

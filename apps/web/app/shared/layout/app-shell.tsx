@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 
 import { useMe } from "~/features/auth/use-me";
+import { usePendingClaim } from "~/features/donate/pending-claim";
 import { useAuthState } from "~/features/auth/session";
 import { useT } from "~/i18n";
 import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
@@ -18,6 +19,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useT();
   const { session } = useAuthState();
   const { me } = useMe();
+  // Klaim donasi tamu dijalankan di layout supaya berlaku untuk login lewat
+  // email maupun Google, di halaman mana pun pengguna mendarat.
+  usePendingClaim();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 

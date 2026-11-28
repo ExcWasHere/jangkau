@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/saya";
 
 import { RequireAuth } from "~/features/auth/guards";
 import { useMe } from "~/features/auth/use-me";
+import { useAuthState } from "~/features/auth/session";
+import { formatRupiah } from "~/features/feed/api";
+import { apiFetch } from "~/shared/api/client";
 import { translatorFromMatches, useT } from "~/i18n";
 import { AppShell } from "~/shared/layout/app-shell";
 
@@ -29,6 +33,72 @@ const VERIFICATION_KEY = {
   rejected: "account.verificationRejected",
   suspended: "account.verificationSuspended",
 } as const;
+
+type DonationHistory = {
+  id: string;
+  amount: number;
+  status: string;
+  paid_at: string | null;
+  created_at: string;
+  disaster_events: { title: string } | null;
+};
+
+function DonationHistorySection() {
+  const { t, locale } = useT();
+  const { token } = useAuthState();
+  const [items, setItems] = useState<DonationHistory[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+
+    apiFetch<{ items: DonationHistory[] }>("/donations", { token })
+      .then((result) => {
+        if (active) setItems(result.items);
+      })
+      .catch(() => {
+        // Riwayat donasi pelengkap; kegagalan tidak menggagalkan halaman akun.
+      })
+      .finally(() => {
+        if (active) setLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  return (
+    <section aria-labelledby="donasi-saya">
+      <h2 id="donasi-saya" className="text-[16px] font-semibold">
+        {t("donate.historyTitle")}
+      </h2>
+
+      {loaded && items.length === 0 ? (
+        <p className="mt-2 text-[13px] text-muted">{t("donate.historyEmpty")}</p>
+      ) : (
+        <ul className="mt-2 flex flex-col divide-y divide-line rounded-xl border border-line bg-surface">
+          {items.map((item) => (
+            <li key={item.id} className="flex flex-wrap items-baseline gap-2 px-4 py-2.5 text-[13px]">
+              <span className="font-semibold">{formatRupiah(item.amount, locale)}</span>
+              <span className="min-w-0 flex-1 truncate text-muted">
+                {item.disaster_events?.title ?? "—"}
+              </span>
+              <span
+                className={`text-[11px] font-semibold ${
+                  item.status === "paid" ? "text-ok" : "text-warn"
+                }`}
+              >
+                {item.status === "paid" ? t("donate.paid") : t("donate.waiting")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 function AccountBody() {
   const { t } = useT();
@@ -95,6 +165,8 @@ function AccountBody() {
           )}
         </section>
       ) : null}
+
+      <DonationHistorySection />
 
       <p className="text-[13px] text-muted">
         <Link to="/" className="underline hover:text-ink">

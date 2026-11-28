@@ -5,6 +5,8 @@ export default [
   { path: "leaderboard", file: "routes/section-leaderboard.tsx" },
   { path: "pantau", file: "routes/section-pantau.tsx" },
   { path: "bencana/:id", file: "routes/bencana-detail.tsx" },
+  { path: "bencana/:id/donasi", file: "routes/donasi-baru.tsx" },
+  { path: "donasi/:id", file: "routes/donasi-detail.tsx" },
   { path: "unggah", file: "routes/unggah.tsx" },
   { path: "saya", file: "routes/saya.tsx" },
   { path: "dashboard", file: "routes/dashboard.tsx" },
