@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/unggah";
 
 import { createPostSchema } from "@jangkau/shared";
 
 import { useSession } from "~/features/auth/session";
+import { isQueueAvailable, enqueuePost, type QueuedPhoto } from "~/features/offline/queue";
+import { isNetworkFailure, submitPost } from "~/features/offline/submit";
 import { translatorFromMatches, useT } from "~/i18n";
-import { apiFetch, ApiError } from "~/shared/api/client";
+import { ApiError } from "~/shared/api/client";
 import { AppShell } from "~/shared/layout/app-shell";
 import { useToast } from "~/shared/ui/toast";
 
@@ -15,10 +17,8 @@ export function meta({ matches }: Route.MetaArgs) {
   return [{ title: t("meta.uploadTitle") }];
 }
 
-type PreparedMedia = { key: string; mimeType: string; sizeBytes: number };
-
 /** Kompres di perangkat sebelum unggah: sisi terpanjang 1600 px, WebP. */
-async function compress(file: File): Promise<Blob> {
+async function compress(file: File): Promise<QueuedPhoto> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
@@ -30,9 +30,11 @@ async function compress(file: File): Promise<Blob> {
   canvas.getContext("2d")?.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob ?? file), "image/webp", 0.72);
+  const blob = await new Promise<Blob>((resolve) => {
+    canvas.toBlob((result) => resolve(result ?? file), "image/webp", 0.72);
   });
+
+  return { blob, mimeType: blob.type || "image/webp", sizeBytes: blob.size };
 }
 
 export default function UploadPage() {
@@ -47,40 +49,7 @@ export default function UploadPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  async function uploadMedia(selected: File[]): Promise<PreparedMedia[]> {
-    if (!token) return [];
-    const prepared: PreparedMedia[] = [];
-
-    for (const file of selected) {
-      const blob = await compress(file);
-      const presign = await apiFetch<{ key: string; putUrl: string }>("/uploads/presign", {
-        method: "POST",
-        token,
-        body: JSON.stringify({
-          kind: "post_photo",
-          contentType: blob.type || "image/webp",
-          sizeBytes: blob.size,
-        }),
-      });
-
-      const put = await fetch(presign.putUrl, {
-        method: "PUT",
-        headers: { "content-type": blob.type || "image/webp" },
-        body: blob,
-      });
-
-      if (!put.ok) throw new Error(`Gagal mengunggah ${file.name}`);
-
-      prepared.push({
-        key: presign.key,
-        mimeType: blob.type || "image/webp",
-        sizeBytes: blob.size,
-      });
-    }
-
-    return prepared;
-  }
+  const [queued, setQueued] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,10 +70,12 @@ export default function UploadPage() {
         });
       });
 
-      if (files.length > 0) setStatus(t("upload.statusUploading", { count: files.length }));
-      const media = await uploadMedia(files);
+      setStatus(t("upload.statusCompressing"));
+      const photos: QueuedPhoto[] = [];
+      for (const file of files) {
+        photos.push(await compress(file));
+      }
 
-      setStatus(t("upload.statusSending"));
       const payload = {
         clientUuid: crypto.randomUUID(),
         body,
@@ -115,23 +86,42 @@ export default function UploadPage() {
           lng: position.coords.longitude,
           accuracyM: position.coords.accuracy,
         },
-        media,
       };
 
-      const parsed = createPostSchema.safeParse(payload);
+      const parsed = createPostSchema.safeParse({ ...payload, media: [] });
       if (!parsed.success) {
         setError(parsed.error.issues[0]?.message ?? t("upload.incomplete"));
         return;
       }
 
-      const result = await apiFetch<{ eventId: string; merged: boolean }>("/posts", {
-        method: "POST",
-        token,
-        body: JSON.stringify(payload),
-      });
+      try {
+        setStatus(t("upload.statusSending"));
+        const result = await submitPost({ ...payload, photos }, token);
+        toast.push(result.merged ? t("upload.successMerged") : t("upload.successNew"), "success");
+        navigate(`/bencana/${result.eventId}`);
+        return;
+      } catch (cause) {
+        // Jaringan putus di tengah jalan: simpan ke perangkat, jangan buang
+        // laporan yang sudah ditulis.
+        if (!isNetworkFailure(cause)) throw cause;
 
-      toast.push(result.merged ? t("upload.successMerged") : t("upload.successNew"), "success");
-      navigate(`/bencana/${result.eventId}`);
+        const queued = await isQueueAvailable();
+        if (!queued) {
+          setError(t("offline.notSaved"));
+          return;
+        }
+
+        await enqueuePost({ ...payload, photos });
+        toast.push(t("offline.queued"), "info");
+        // Sengaja TIDAK navigasi: halaman tujuan dirender server, dan saat
+        // offline permintaan itu gagal sehingga pengguna mendarat di halaman
+        // galat browser setelah laporannya berhasil disimpan.
+        setQueued(true);
+        setBody("");
+        setPlaceLabel("");
+        setFiles([]);
+        return;
+      }
     } catch (cause) {
       if (cause instanceof ApiError) setError(cause.message);
       else if (cause instanceof GeolocationPositionError) {
@@ -152,6 +142,35 @@ export default function UploadPage() {
             {t("nav.signIn")}
           </a>
         </p>
+      </AppShell>
+    );
+  }
+
+  if (queued) {
+    return (
+      <AppShell>
+        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
+          <div className="rounded-xl border border-ok/40 bg-ok/10 p-5">
+            <p className="text-[15px] font-semibold text-ok">{t("offline.queuedTitle")}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">{t("offline.queued")}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setQueued(false)}
+              className="rounded-lg bg-brand px-4 py-2 text-[14px] font-semibold text-white"
+            >
+              {t("upload.submit")}
+            </button>
+            <Link
+              to="/"
+              className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold"
+            >
+              {t("common.backToHome")}
+            </Link>
+          </div>
+        </div>
       </AppShell>
     );
   }

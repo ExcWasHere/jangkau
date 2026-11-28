@@ -83,7 +83,30 @@ const DOC_KEYS: Record<string, DictKey> = {
   other: "dashboard.docKindFieldProof",
 };
 
-type Tab = "verifications" | "pic" | "reports" | "funds" | "audit";
+type Tab = "verifications" | "pic" | "reports" | "funds" | "audit" | "merge";
+
+type MergeItem = {
+  postId: string;
+  body: string;
+  placeLabel: string | null;
+  authorName: string;
+  createdAt: string;
+  ai: {
+    category: string | null;
+    confidence: number | null;
+    similarity: number | null;
+    model: string | null;
+  };
+  event: {
+    id: string;
+    title: string;
+    disasterType: string;
+    region: string;
+    postCount: number;
+    likeCount: number;
+  } | null;
+  photoUrl: string | null;
+};
 
 type AuditItem = {
   id: number;
@@ -121,6 +144,7 @@ function AdminBody() {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [funds, setFunds] = useState<DisbursementItem[]>([]);
   const [audit, setAudit] = useState<AuditItem[]>([]);
+  const [mergeQueue, setMergeQueue] = useState<MergeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -128,7 +152,7 @@ function AdminBody() {
     if (!token) return;
     setLoading(true);
     try {
-      const [s, v, p, r, d, dApproved, a] = await Promise.all([
+      const [s, v, p, r, d, dApproved, a, m] = await Promise.all([
         apiFetch<Stats>("/admin/stats", { token }),
         apiFetch<{ items: VerificationItem[] }>("/admin/verifications?status=pending", { token }),
         apiFetch<{ items: PicItem[] }>("/admin/pic-applications?status=applied", { token }),
@@ -136,6 +160,7 @@ function AdminBody() {
         apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=requested", { token }),
         apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=approved", { token }),
         apiFetch<{ items: AuditItem[] }>("/admin/audit-logs?limit=40", { token }),
+        apiFetch<{ items: MergeItem[] }>("/admin/merge-review?limit=20", { token }),
       ]);
       setStats(s);
       setVerifications(v.items);
@@ -146,6 +171,7 @@ function AdminBody() {
       // menebak kapan menekan tombol kedua.
       setFunds([...d.items, ...dApproved.items]);
       setAudit(a.items);
+      setMergeQueue(m.items);
     } catch (cause) {
       toast.push(cause instanceof ApiError ? cause.message : t("common.loadFailed"), "error");
     } finally {
@@ -177,6 +203,7 @@ function AdminBody() {
     { key: "reports", label: "admin.tabReports", count: stats?.openContentReports ?? 0 },
     { key: "funds", label: "adminFunds.tab", count: stats?.pendingDisbursements ?? 0 },
     { key: "audit", label: "adminAudit.tab", count: 0 },
+    { key: "merge", label: "mergeReview.tab", count: mergeQueue.length },
   ];
 
   return (
@@ -375,6 +402,83 @@ function AdminBody() {
                     className="rounded-lg border border-danger/40 px-3 py-1.5 text-[12px] font-semibold text-danger"
                   >
                     {t("admin.reject")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : tab === "merge" ? (
+        mergeQueue.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[13px] text-muted">
+            {t("mergeReview.empty")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {mergeQueue.map((item) => (
+              <li key={item.postId} className="rounded-xl border border-line bg-surface p-4">
+                <div className="flex flex-wrap gap-3">
+                  {item.photoUrl ? (
+                    <img
+                      src={item.photoUrl}
+                      alt={t("mergeReview.photoAlt", { name: item.authorName })}
+                      className="h-20 w-28 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : null}
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <p className="text-[13px] leading-relaxed">{item.body}</p>
+                    <p className="text-[12px] text-muted">
+                      {item.authorName} · {item.placeLabel ?? "—"}
+                    </p>
+
+                    <p className="text-[12px]">
+                      <span className="font-semibold">{t("mergeReview.mergedInto")}: </span>
+                      <Link to={`/bencana/${item.event?.id}`} className="underline">
+                        {item.event?.title ?? "—"}
+                      </Link>
+                      {item.event?.region ? ` · ${item.event.region}` : ""}
+                    </p>
+
+                    <p className="text-[11px] text-subtle">
+                      {t("mergeReview.similarity", {
+                        value: item.ai.similarity !== null ? item.ai.similarity.toFixed(2) : "—",
+                      })}
+                      {" · "}
+                      {t("mergeReview.confidence", {
+                        value: item.ai.confidence !== null ? item.ai.confidence.toFixed(2) : "—",
+                      })}
+                      {item.ai.model ? ` · ${item.ai.model}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      void decide(item.postId, `/admin/merge-review/${item.postId}/decision`, {
+                        decision: "accept",
+                      })
+                    }
+                    className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-white"
+                  >
+                    {t("mergeReview.accept")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      const title = window.prompt(t("mergeReview.titlePrompt")) ?? "";
+                      void decide(item.postId, `/admin/merge-review/${item.postId}/decision`, {
+                        decision: "split",
+                        title: title.trim() || undefined,
+                      });
+                    }}
+                    className="rounded-lg border border-line px-3 py-1.5 text-[12px] font-semibold"
+                  >
+                    {t("mergeReview.split")}
                   </button>
                 </div>
               </li>
