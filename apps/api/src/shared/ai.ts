@@ -18,10 +18,14 @@ import type { Bindings } from "../env.js";
 /**
  * Batas waktu satu panggilan AI.
  *
- * Model yang dipakai (`alicn/deepseek-v4.1-flash`) adalah **reasoning model**:
+ * Model yang dipakai (`cb/deepseek-v4.1-flash`) adalah **reasoning model**:
  * ia menulis rantai penalaran lebih dulu, baru jawaban. Panggilan yang
  * seharusnya selesai dalam 2 detik bisa memakan 17 detik, jadi batas 12 detik
  * memotong jawaban yang sebenarnya sedang berjalan.
+ *
+ * 30 detik memberi ruang untuk panggilan lambat itu tanpa membuat pengguna
+ * menunggu terlalu lama: di atas itu, jalur tanpa AI (post tetap terbit dengan
+ * `needs_review`) lebih berguna daripada halaman yang menggantung.
  */
 const REQUEST_TIMEOUT_MS = 30_000;
 

@@ -9,8 +9,79 @@ Monorepo Bun dengan dua aplikasi yang **dideploy terpisah**:
 |---|---|---|---|
 | Frontend (React Router 7, SSR) | `apps/web` | Cloudflare Pages | `bun run build` → `build/client` |
 | Backend (Hono) | `apps/api` | Cloudflare Workers | `bunx wrangler deploy` |
-| Skema database | `packages/db` | Supabase | `psql -f migrations/0001_init.sql` |
+| Skema database | `packages/db` | Supabase | `bun run db:push` |
 | Kontrak bersama | `packages/shared` | — (dipakai kedua app) | — |
+
+**Produksi:** <https://jangkau-c5x.pages.dev> · API <https://jangkau-api.jangkau.workers.dev/api/v1/health>
+
+---
+
+## Demo 5 menit
+
+Satu skenario utuh: unggahan warga → berita → dukungan → penyalur → donasi →
+bukti belanja → konfirmasi pelapor. Semua akun memakai kata sandi `Jangkau2026!`
+(daftar lengkap di [Akun demo](#akun-demo-password-semua-jangkau2026)).
+Bahasa UI mengikuti bahasa browser; label yang dikutip di sini adalah versi Indonesia.
+
+| Waktu | Peran (akun) | Layar | Yang harus terlihat |
+|---|---|---|---|
+| 0:00–0:30 | publik | `/` | Tiga rak: **Leaderboard**, **Pantau**, **Terbaru**. Ambang 50 dukungan nyata — Banjir Bandang Gunung Arjuna (62), Banjir Tanjung Duren (55) |
+| 0:30–1:30 | warga · `demo.pelapor@jangkau.test` | `/unggah` | Izin lokasi diminta **saat halaman dibuka**, bukan saat menekan kirim. Kirim laporan → AI mengklasifikasi (±2–5 detik) → "Laporan digabung ke berita yang sudah ada." atau "Laporan terbit sebagai berita baru." |
+| 1:30–2:00 | publik | detail berita hasil | Unggahan tampil sebagai pengunggah; tombol dukungan menaikkan hitungan |
+| 2:00–2:45 | publik | `/pantau` → **Kebakaran Lapas Tangerang** | Dua penanggung jawab terverifikasi (Yayasan Siaga Nusantara, Rangga Prasetya), dua posko aktif, kebutuhan Posko Keluarga Lapas: Air mineral 180/300, Selimut 120/340 |
+| 2:45–3:30 | donatur (boleh tanpa akun) | `/bencana/e0000000-0000-4000-8000-000000000002/donasi` | Pilih penanggung jawab → nominal → QR berlabel **Mode simulasi** → "Tandai lunas (simulasi)" → modal "Terima kasih, orang baik." → total publik naik |
+| 3:30–4:15 | penanggung jawab · `demo.org@jangkau.test` | `/pencairan?assignment=d0000000-0000-4000-8000-000000000001` | Saldo Rp6.200.000, tahap 1 sudah cair (disimulasikan) + 2 bukti belanja. Ajukan tahap 2 — batas 40% = Rp2.480.000 |
+| 4:15–4:45 | admin · `demo.admin@jangkau.test` | `/admin` → tab **Pencairan** | "Setujui" pengajuan → "Tandai dicairkan" → catatan *transfer disimulasikan*. Tab **Audit trail** mencatat `disbursement.approved` dan `disbursement.transferred` |
+| 4:45–5:00 | pelapor · `demo.pelapor@jangkau.test` | `/konfirmasi` | Dua bukti belanja menunggu keputusan (Makanan siap saji, Air mineral); konfirmasi "Diterima" menutup rantai akuntabilitas |
+
+Cadangan kalau waktu tersisa — semuanya sudah terisi di seed: tab **Verifikasi**
+(1 pengajuan), **Penanggung jawab** (1), **Laporan konten** (1), dan **Tinjauan merge**
+(unggahan lokasi manual dari langkah 0:30 muncul di sini kalau dipilih lewat peta).
+
+### Simulasi yang harus disebut saat demo
+
+- **Midtrans**: `MIDTRANS_SERVER_KEY` kosong → QR bertanda `JANGKAU-MOCK|…` dan
+  tombol "Tandai lunas (simulasi)". Tidak ada uang berpindah.
+- **Transfer pencairan**: `is_simulated = true`; tidak ada transfer bank nyata.
+- **AI**: hanya mengusulkan kategori dan verdict duplikat. Kalau provider gagal,
+  unggahan tetap terbit dengan `needs_review = true`.
+
+### Kalau ada yang gagal di tengah demo
+
+| Gejala | Jalan pintas yang sudah ada di produk |
+|---|---|
+| Izin lokasi diblokir / GPS tidak dapat titik | Pilih lokasi di peta (Leaflet), geser pin → "Pakai lokasi ini" → unggahan ditandai **Lokasi dipilih manual · menunggu tinjauan** |
+| Sinyal putus saat mengirim | Laporan masuk antrean IndexedDB; indikator "{count} laporan menunggu sinyal" di header, terkirim otomatis saat sinyal kembali |
+| Server menolak laporan | Laporan bertahan sebagai `failed` dengan alasannya, bisa diperbaiki lalu dikirim ulang atau dibuang sadar |
+| AI lambat/gagal | Unggahan tetap terbit, `needs_review = true`, penggabungan memakai jarak sebagai fallback |
+
+### Mengulang demo
+
+`bun run db:seed` idempoten untuk data seed, tetapi **tidak menghapus** unggahan,
+donasi, atau pengajuan yang dibuat selama demo. Ada dua cara mengembalikan keadaan:
+
+| Cara | Perintah | Kapan dipakai |
+|---|---|---|
+| Bersihkan sisa demo | SQL di bawah | Database berisi data yang tidak boleh hilang |
+| Bangun ulang dari nol | `bun run db:reset && bun run db:seed` | Database yang memang boleh dihapus (lokal/staging) — **`0002` menghapus seluruh data** |
+
+Sisa demo di produksi dihapus dengan batas waktu, bukan dengan menebak id:
+
+```sql
+-- Unggahan dan event yang lahir setelah jam mulai demo.
+delete from posts where created_at > '2026-11-29 00:00+07';
+delete from disaster_events e
+ where e.created_at > '2026-11-29 00:00+07'
+   and not exists (select 1 from posts p where p.event_id = e.id);
+```
+
+Donasi dan pencairan dari demo tidak ikut terhapus oleh SQL di atas — ia hanya
+menyentuh `posts` dan `disaster_events`. Untuk mengembalikannya, hapus baris
+`ledger_entries` lebih dulu, baru baris induknya (`donations` / `disbursements`):
+saldo penanggung jawab dihitung dari ledger, jadi menghapus donasinya saja
+meninggalkan saldo yang tetap berkurang. `ledger_entries` hanya punya policy
+`select` untuk klien, sehingga penulisan dan penghapusan hanya bisa lewat
+`service_role`.
 
 ---
 
@@ -56,9 +127,15 @@ cd apps/api
 bunx wrangler secret put SUPABASE_URL
 bunx wrangler secret put SUPABASE_ANON_KEY
 bunx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-bunx wrangler secret put AI_BASE_URL
+bunx wrangler secret put AI_BASE_URL     # https://api.inferhub.dev/v1
 bunx wrangler secret put AI_API_KEY
-bunx wrangler secret put AI_MODEL
+bunx wrangler secret put AI_MODEL        # cb/deepseek-v4.1-flash
+bunx wrangler secret put R2_ACCOUNT_ID
+bunx wrangler secret put R2_ACCESS_KEY_ID
+bunx wrangler secret put R2_SECRET_ACCESS_KEY
+bunx wrangler secret put R2_BUCKET             # bucket privat (foto bukti, dokumen)
+bunx wrangler secret put R2_PUBLIC_BUCKET      # bucket publik (foto berita)
+bunx wrangler secret put R2_PUBLIC_BASE_URL    # domain publik bucket foto
 ```
 
 Variable non-rahasia ada di `apps/api/wrangler.jsonc` (`APP_BASE_URL`, `ALLOWED_ORIGINS`,
@@ -137,10 +214,20 @@ cd apps/web && bun run build && bunx wrangler pages dev build/client --port 8790
 
 ## Database
 
-Skema ada di `packages/db/migrations/`. Skema aktif adalah **`0002_community_feed.sql`** —
-migrasi ini menghapus seluruh skema `0001_init.sql` (alur RAB/organisasi) dan
-menggantinya dengan alur post bencana + event hasil merge + penanggung jawab + ledger.
-`0001_init.sql` disimpan hanya sebagai riwayat.
+Skema ada di `packages/db/migrations/` dan diterapkan berurutan:
+
+| Berkas | Isi |
+|---|---|
+| `0001_init.sql` | Skema awal (RAB/organisasi). **Riwayat saja** — dihapus oleh 0002 |
+| `0002_community_feed.sql` | Skema aktif: post bencana, event hasil merge, penanggung jawab, posko, ledger |
+| `0003_offline_and_merge_review.sql` | `fn_split_post`, index antrean tinjauan merge |
+| `0004_location_source.sql` | Enum `location_source` (`device`/`manual`), index lokasi manual |
+
+**`0002` destruktif.** Ia menjalankan `drop table … profiles, disaster_events, posts …`
+lalu membangun ulang seluruh skema, jadi menjalankannya di database yang sudah berisi
+data akan menghapus semuanya. Karena itu `db:push` hanya menjalankan migrasi
+inkremental; membangun ulang dari nol memakai `bun run db:reset` (menghapus seluruh
+data, lalu `db:seed` untuk mengisi ulang).
 
 Terapkan migrasi dan seed dari root repo:
 
@@ -148,7 +235,7 @@ Terapkan migrasi dan seed dari root repo:
 export SUPABASE_PROJECT_REF=hfctvwlhviuqnwnlgvnn
 export SUPABASE_DB_PASSWORD='<password-db>'
 
-bun run db:push     # packages/db/migrations/0002_community_feed.sql
+bun run db:push     # 0003 + 0004 (inkremental, aman diulang di DB berisi data)
 bun run db:seed     # packages/db/seeds/demo.sql (idempoten, aman diulang)
 bun run db:types    # regenerasi packages/db/src/database.types.ts
 ```
@@ -158,9 +245,9 @@ Kalau ingin memakai `psql` langsung:
 
 ```bash
 export PGPASSWORD='<password-db>'
-psql "host=aws-1-ap-northeast-1.pooler.supabase.com port=5432 dbname=postgres \
-      user=postgres.hfctvwlhviuqnwnlgvnn sslmode=require" \
-     -v ON_ERROR_STOP=1 -f packages/db/migrations/0002_community_feed.sql
+PSQL="psql \"host=aws-1-ap-northeast-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.hfctvwlhviuqnwnlgvnn sslmode=require\" -v ON_ERROR_STOP=1"
+# 0003 dan 0004 saja; menambahkan 0002 di sini menghapus seluruh data.
+for f in packages/db/migrations/000[34]_*.sql; do eval "$PSQL -f $f"; done
 ```
 
 Catatan penting:
@@ -359,7 +446,8 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 | `bun run dev` | web + api bersamaan |
 | `bun run typecheck` | tsc di semua workspace |
 | `bun run build` | build web (Pages) |
-| `bun run db:push` | terapkan `migrations/0002_community_feed.sql` |
+| `bun run db:push` | terapkan migrasi inkremental `0003` → `0004` (aman diulang) |
+| `bun run db:reset` | bangun ulang skema dari `0002` — **menghapus seluruh data** |
 | `bun run db:seed` | isi data demo (idempoten) |
 | `bun run db:types` | regenerasi `packages/db/src/database.types.ts` |
 
@@ -417,8 +505,9 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
 | Pencairan bertahap (maks 40%/tahap), bukti belanja, konfirmasi pelapor | jalan |
 | Midtrans | **mock**: `MIDTRANS_SERVER_KEY` kosong → provider mock berlabel "Simulasi"; isi key untuk beralih ke QRIS sandbox tanpa ubah kode |
-| Antrean offline IndexedDB | jalan |
 | i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |
+| Deploy produksi: Pages `jangkau-c5x.pages.dev`, Worker `jangkau-api` | jalan |
+| Model AI produk `cb/deepseek-v4.1-flash` (reasoning; 1500 token keluaran, timeout 30 s, retry) | jalan |
 
 ## Keterbatasan yang disengaja
 
@@ -437,3 +526,11 @@ Pengembangan dibantu AI coding assistant (Claude) untuk scaffolding, penulisan k
 dan review. Keputusan arsitektur, skema, dan verifikasi dilakukan oleh tim.
 Model AI produk (klasifikasi laporan, verdict duplikat) dipanggil lewat endpoint
 kompatibel OpenAI di inferhub, bukan alat bantu coding.
+
+Model dipilih dengan pengukuran, bukan selera: `cb/deepseek-v4.1-flash` menjawab
+2–3 detik konsisten pada prompt klasifikasi yang sama, sementara
+`alicn/deepseek-v4.1-flash` berkisar 2,8–15,5 detik untuk keluaran JSON setara.
+Keduanya model *reasoning*, jadi `max_tokens` harus cukup untuk rantai penalaran
+sebelum `content` ditulis — 400 token membuat setiap unggahan berakhir
+`ai_unavailable`, dan itu bug yang pernah terjadi di produksi. Nilai sekarang:
+1500 token keluaran, timeout 30 detik, satu retry.

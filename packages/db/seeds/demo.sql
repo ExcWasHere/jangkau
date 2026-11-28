@@ -246,7 +246,7 @@ values
   ('f0000000-0000-4000-8000-000000000009','c0000000-0000-4000-8000-000000000009',
    'e0000000-0000-4000-8000-000000000002','1c414d44-911d-4860-a56f-db8e5c43fa2e',
    'Saya membantu pendataan korban di posko keluarga lapas. Butuh air minum dan alas duduk untuk keluarga yang menunggu.',
-   st_setsrid(st_makepoint(106.6324,-6.1782),4326)::geography, 18,'Cipondoh', now() - interval '4 days 18 hours', false,'water',0.85,'alicn/deepseek-v4.1-flash'),
+   st_setsrid(st_makepoint(106.6324,-6.1782),4326)::geography, 18,'Cipondoh', now() - interval '4 days 18 hours', false,'water',0.85,'cb/deepseek-v4.1-flash'),
 
   ('f0000000-0000-4000-8000-000000000008','c0000000-0000-4000-8000-000000000008',
    'e0000000-0000-4000-8000-000000000002','f9315f1c-0a82-4878-afb6-fdd42beac9af',
