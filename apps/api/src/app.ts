@@ -8,6 +8,7 @@ import type { AppEnv } from "./env.js";
 import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
 import { adminRoutes } from "./modules/admin/routes.js";
+import { disbursementRoutes } from "./modules/disbursements/routes.js";
 import { distributorRoutes } from "./modules/distributors/routes.js";
 import { donationRoutes } from "./modules/donations/routes.js";
 import { eventRoutes } from "./modules/events/routes.js";
@@ -70,6 +71,7 @@ api.route("/posts", postRoutes);
 api.route("/uploads", uploadRoutes);
 api.route("/distributors", distributorRoutes);
 api.route("/donations", donationRoutes);
+api.route("/disbursements", disbursementRoutes);
 api.route("/me", meRoutes);
 api.route("/admin", adminRoutes);
 

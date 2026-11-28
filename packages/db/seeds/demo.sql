@@ -241,6 +241,13 @@ values
    'Banjir setinggi dada di Tanjung Duren. Warga mengungsi ke musala, butuh selimut, popok, dan air bersih.',
    st_setsrid(st_makepoint(106.7931,-6.1681),4326)::geography, 15,'Tanjung Duren', now() - interval '6 days', true,'water',0.88,'ag/gemini-3.8-flash-high'),
 
+  -- demo.pelapor ikut melaporkan event ini supaya akun demo punya tugas
+  -- konfirmasi bukti belanja di /konfirmasi.
+  ('f0000000-0000-4000-8000-000000000009','c0000000-0000-4000-8000-000000000009',
+   'e0000000-0000-4000-8000-000000000002','1c414d44-911d-4860-a56f-db8e5c43fa2e',
+   'Saya membantu pendataan korban di posko keluarga lapas. Butuh air minum dan alas duduk untuk keluarga yang menunggu.',
+   st_setsrid(st_makepoint(106.6324,-6.1782),4326)::geography, 18,'Cipondoh', now() - interval '4 days 18 hours', false,'water',0.85,'alicn/deepseek-v4.1-flash'),
+
   ('f0000000-0000-4000-8000-000000000008','c0000000-0000-4000-8000-000000000008',
    'e0000000-0000-4000-8000-000000000002','f9315f1c-0a82-4878-afb6-fdd42beac9af',
    'Saya kehilangan kontak dengan saudara di dalam. Posko keluarga di seberang lapas butuh selimut dan makanan.',

@@ -68,6 +68,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     {t("nav.upload")}
                   </Link>
+                  {me?.distributor ? (
+                    <Link
+                      to="/dashboard"
+                      className="hidden text-[14px] text-muted hover:text-ink sm:block"
+                    >
+                      {t("dashboard.title")}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/konfirmasi"
+                      className="hidden text-[14px] text-muted hover:text-ink sm:block"
+                    >
+                      {t("funds.taskTitle")}
+                    </Link>
+                  )}
                   <Link
                     to="/saya"
                     className="hidden max-w-[120px] truncate text-[14px] text-muted hover:text-ink sm:block"

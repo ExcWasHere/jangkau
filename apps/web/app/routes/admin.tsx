@@ -19,6 +19,7 @@ type Stats = {
   pendingPicApplications: number;
   openContentReports: number;
   monitoredEvents: number;
+  pendingDisbursements: number;
 };
 
 type VerificationItem = {
@@ -82,7 +83,21 @@ const DOC_KEYS: Record<string, DictKey> = {
   other: "dashboard.docKindFieldProof",
 };
 
-type Tab = "verifications" | "pic" | "reports";
+type Tab = "verifications" | "pic" | "reports" | "funds";
+
+type DisbursementItem = {
+  id: string;
+  seq: number;
+  amount: number;
+  status: string;
+  purpose: string | null;
+  is_simulated: boolean;
+  spent: number;
+  pic_assignments: {
+    distributor_profiles: { display_name: string } | null;
+    disaster_events: { title: string } | null;
+  } | null;
+};
 
 function AdminBody() {
   const { t } = useT();
@@ -94,6 +109,7 @@ function AdminBody() {
   const [verifications, setVerifications] = useState<VerificationItem[]>([]);
   const [pics, setPics] = useState<PicItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [funds, setFunds] = useState<DisbursementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -101,16 +117,22 @@ function AdminBody() {
     if (!token) return;
     setLoading(true);
     try {
-      const [s, v, p, r] = await Promise.all([
+      const [s, v, p, r, d, dApproved] = await Promise.all([
         apiFetch<Stats>("/admin/stats", { token }),
         apiFetch<{ items: VerificationItem[] }>("/admin/verifications?status=pending", { token }),
         apiFetch<{ items: PicItem[] }>("/admin/pic-applications?status=applied", { token }),
         apiFetch<{ items: ReportItem[] }>("/admin/content-reports?status=open", { token }),
+        apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=requested", { token }),
+        apiFetch<{ items: DisbursementItem[] }>("/admin/disbursements?status=approved", { token }),
       ]);
       setStats(s);
       setVerifications(v.items);
       setPics(p.items);
       setReports(r.items);
+      // Dua tahap ditampilkan sekaligus: yang menunggu persetujuan, dan yang
+      // sudah disetujui tapi belum ditandai berpindah. Tanpa ini admin harus
+      // menebak kapan menekan tombol kedua.
+      setFunds([...d.items, ...dApproved.items]);
     } catch (cause) {
       toast.push(cause instanceof ApiError ? cause.message : t("common.loadFailed"), "error");
     } finally {
@@ -140,6 +162,7 @@ function AdminBody() {
     { key: "verifications", label: "admin.tabVerifications", count: stats?.pendingVerifications ?? 0 },
     { key: "pic", label: "admin.tabPic", count: stats?.pendingPicApplications ?? 0 },
     { key: "reports", label: "admin.tabReports", count: stats?.openContentReports ?? 0 },
+    { key: "funds", label: "adminFunds.tab", count: stats?.pendingDisbursements ?? 0 },
   ];
 
   return (
@@ -339,6 +362,95 @@ function AdminBody() {
                   >
                     {t("admin.reject")}
                   </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : tab === "funds" ? (
+        funds.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[13px] text-muted">
+            {t("adminFunds.empty")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {funds.map((item) => (
+              <li key={item.id} className="rounded-xl border border-line bg-surface p-4">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="text-[15px] font-semibold">
+                    {item.pic_assignments?.distributor_profiles?.display_name ?? "—"}
+                  </span>
+                  <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] font-semibold text-muted">
+                    {t("funds.stage", { seq: item.seq })}
+                  </span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat("id-ID", {
+                      style: "currency",
+                      currency: "IDR",
+                      maximumFractionDigits: 0,
+                    }).format(item.amount)}
+                  </span>
+                </div>
+
+                <p className="mt-1 text-[13px] text-muted">
+                  {item.pic_assignments?.disaster_events?.title ?? "—"}
+                </p>
+                {item.purpose ? (
+                  <p className="mt-1 text-[13px]">
+                    <span className="font-semibold">{t("adminFunds.purpose")}: </span>
+                    {item.purpose}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[12px] text-muted">
+                  {t("adminFunds.spent")}: {item.spent}
+                </p>
+                <p className="mt-1 text-[12px] text-warn">{t("adminFunds.simulatedNote")}</p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {item.status === "requested" ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() =>
+                          void decide(item.id, `/admin/disbursements/${item.id}/decision`, {
+                            decision: "approved",
+                          })
+                        }
+                        className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-white"
+                      >
+                        {t("adminFunds.approve")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => {
+                          const note = window.prompt(t("adminFunds.notePrompt")) ?? "";
+                          if (!note.trim()) return;
+                          void decide(item.id, `/admin/disbursements/${item.id}/decision`, {
+                            decision: "rejected",
+                            note,
+                          });
+                        }}
+                        className="rounded-lg border border-danger/40 px-3 py-1.5 text-[12px] font-semibold text-danger"
+                      >
+                        {t("adminFunds.reject")}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        void decide(item.id, `/admin/disbursements/${item.id}/decision`, {
+                          decision: "transferred",
+                        })
+                      }
+                      className="rounded-lg bg-ok px-3 py-1.5 text-[12px] font-semibold text-black"
+                    >
+                      {t("adminFunds.transfer")}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

@@ -395,11 +395,144 @@ adminRoutes.post("/content-reports/:id", async (c) => {
   return c.json({ ok: true, status: body.decision });
 });
 
+/**
+ * Antrean pencairan. Dana ditahan platform, jadi setiap pencairan butuh
+ * persetujuan admin sebelum ditandai berpindah.
+ */
+adminRoutes.get("/disbursements", async (c) => {
+  const admin = adminClient(c.env);
+  const status = c.req.query("status") ?? "requested";
+
+  const { data, error } = await admin
+    .from("disbursements")
+    .select(
+      "id, pic_assignment_id, seq, amount, status, purpose, requested_at, is_simulated, pic_assignments(event_id, distributor_id, distributor_profiles(display_name), disaster_events(title))",
+    )
+    .eq("status", status)
+    .order("requested_at", { ascending: true });
+
+  if (error) raiseDbError(error);
+
+  const rows = data ?? [];
+  const ids = rows.map((row) => row.id);
+
+  const { data: expenses, error: expensesError } = await admin
+    .from("expenses")
+    .select("disbursement_id, amount")
+    .in("disbursement_id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
+
+  if (expensesError) raiseDbError(expensesError);
+
+  const spentByDisbursement = new Map<string, number>();
+  for (const expense of expenses ?? []) {
+    spentByDisbursement.set(
+      expense.disbursement_id,
+      (spentByDisbursement.get(expense.disbursement_id) ?? 0) + Number(expense.amount),
+    );
+  }
+
+  return c.json({
+    items: rows.map((row) => ({
+      ...row,
+      amount: Number(row.amount),
+      spent: spentByDisbursement.get(row.id) ?? 0,
+    })),
+  });
+});
+
+/**
+ * Keputusan admin atas pencairan: setujui, tandai berpindah, atau tolak.
+ *
+ * `transferred` memicu trigger `fn_disbursement_ledger` yang menulis entri
+ * keluar ke ledger. Karena itu status tidak boleh langsung di-set
+ * `transferred` dari `requested` tanpa persetujuan — alurnya dua langkah,
+ * sama seperti proses nyata.
+ */
+adminRoutes.post("/disbursements/:id/decision", async (c) => {
+  const id = c.req.param("id");
+  const reviewer = c.get("user");
+
+  const body = (await c.req.json()) as {
+    decision?: "approved" | "transferred" | "rejected";
+    note?: string;
+  };
+
+  if (!body.decision || !["approved", "transferred", "rejected"].includes(body.decision)) {
+    throw badRequest("invalid_body", "Keputusan tidak dikenal");
+  }
+
+  if (body.decision === "rejected" && !body.note?.trim()) {
+    throw badRequest("note_required", "Alasan wajib diisi saat menolak");
+  }
+
+  const admin = adminClient(c.env);
+
+  const { data: row, error } = await admin
+    .from("disbursements")
+    .select("id, status, pic_assignment_id, seq, amount")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) raiseDbError(error);
+  if (!row) throw notFound("Pencairan tidak ditemukan");
+
+  if (body.decision === "transferred" && row.status !== "approved") {
+    throw conflict("not_approved", "Pencairan harus disetujui sebelum ditandai berpindah");
+  }
+
+  const patch: Record<string, unknown> = {};
+
+  if (body.decision === "approved") {
+    patch.status = "approved";
+    patch.approved_by = reviewer.id;
+    patch.approved_at = new Date().toISOString();
+  } else if (body.decision === "transferred") {
+    patch.status = "transferred";
+    patch.transferred_at = new Date().toISOString();
+  } else {
+    patch.status = "rejected";
+  }
+
+  const { error: updateError } = await admin.from("disbursements").update(patch).eq("id", id);
+  if (updateError) raiseDbError(updateError);
+
+  const { data: assignment } = await admin
+    .from("pic_assignments")
+    .select("distributor_id, event_id")
+    .eq("id", row.pic_assignment_id)
+    .maybeSingle();
+
+  if (assignment) {
+    await admin.from("notifications").insert({
+      profile_id: assignment.distributor_id,
+      kind: `disbursement_${body.decision}`,
+      title:
+        body.decision === "approved"
+          ? `Pencairan tahap ${row.seq} disetujui`
+          : body.decision === "transferred"
+            ? `Dana tahap ${row.seq} dicairkan`
+            : `Pencairan tahap ${row.seq} ditolak`,
+      body: body.note ?? null,
+      link: `/bencana/${assignment.event_id}`,
+    });
+  }
+
+  await admin.from("audit_logs").insert({
+    actor_id: reviewer.id,
+    action: `disbursement.${body.decision}`,
+    entity: "disbursements",
+    entity_id: id,
+    payload: { note: body.note ?? null, amount: row.amount },
+  });
+
+  return c.json({ ok: true, status: patch.status });
+});
+
 /** Ringkasan untuk kartu di beranda admin. */
 adminRoutes.get("/stats", async (c) => {
   const admin = adminClient(c.env);
 
-  const [verifications, pics, reports, events] = await Promise.all([
+  const [verifications, pics, reports, events, disbursements] = await Promise.all([
     admin
       .from("distributor_profiles")
       .select("profile_id", { count: "exact", head: true })
@@ -416,6 +549,10 @@ adminRoutes.get("/stats", async (c) => {
       .from("v_event_feed")
       .select("id", { count: "exact", head: true })
       .eq("section", "pantau"),
+    admin
+      .from("disbursements")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "requested"),
   ]);
 
   return c.json({
@@ -423,5 +560,6 @@ adminRoutes.get("/stats", async (c) => {
     pendingPicApplications: pics.count ?? 0,
     openContentReports: reports.count ?? 0,
     monitoredEvents: events.count ?? 0,
+    pendingDisbursements: disbursements.count ?? 0,
   });
 });
