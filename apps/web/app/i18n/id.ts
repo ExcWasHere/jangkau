@@ -132,6 +132,7 @@ export const id = {
     submitting: "Mengirim…",
     statusLocating: "Mengambil lokasi…",
     statusUploading: "Mengunggah {count} foto…",
+    statusCompressing: "Mengompres foto…",
     statusSending: "Mengirim laporan…",
     signInRequired: "Masuk dulu untuk mengunggah laporan bencana.",
     geolocationFailed: "Lokasi tidak bisa diambil. Izinkan akses lokasi lalu coba lagi.",
@@ -533,6 +534,35 @@ export const id = {
     entity: "Objek",
     when: "Waktu",
     detail: "Rincian",
+  },
+
+  offline: {
+    indicator: "{count} laporan menunggu sinyal",
+    indicatorSyncing: "Mengirim {count} laporan…",
+    offline: "Tidak ada sinyal",
+    syncNow: "Kirim sekarang",
+    synced: "{count} laporan terkirim",
+    rejected: "{count} laporan ditolak server, periksa isinya",
+    queued: "Laporan disimpan di perangkat dan akan terkirim otomatis saat sinyal kembali.",
+    queuedTitle: "Laporan tersimpan di perangkat",
+    queueFailed: "Laporan tidak bisa disimpan di perangkat ini.",
+    notSaved: "Laporan belum terkirim dan tidak bisa diantrekan. Coba lagi.",
+  },
+
+  mergeReview: {
+    tab: "Tinjauan merge",
+    intro:
+      "AI menggabungkan unggahan yang dinilai membicarakan bencana yang sama. Di ambang keyakinan menengah, penggabungan ditandai untuk ditinjau.",
+    empty: "Tidak ada penggabungan yang menunggu tinjauan.",
+    similarity: "Kemiripan {value}",
+    confidence: "Keyakinan {value}",
+    mergedInto: "Digabung ke",
+    accept: "Setujui penggabungan",
+    split: "Pisahkan jadi berita baru",
+    accepted: "Penggabungan disetujui",
+    splitDone: "Unggahan dipisahkan menjadi berita baru",
+    titlePrompt: "Judul berita baru (kosongkan untuk memakai teks unggahan)",
+    photoAlt: "Foto unggahan dari {name}",
   },
 
   guards: {

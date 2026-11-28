@@ -7,6 +7,7 @@ import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./env.js";
 import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
+import { mergeReviewRoutes } from "./modules/admin/merge-review.js";
 import { adminRoutes } from "./modules/admin/routes.js";
 import { disbursementRoutes } from "./modules/disbursements/routes.js";
 import { distributorRoutes } from "./modules/distributors/routes.js";
@@ -76,6 +77,7 @@ api.route("/disbursements", disbursementRoutes);
 api.route("/me", meRoutes);
 api.route("/notifications", notificationRoutes);
 api.route("/admin", adminRoutes);
+api.route("/admin/merge-review", mergeReviewRoutes);
 
 app.route("/api/v1", api);
 

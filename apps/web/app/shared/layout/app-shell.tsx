@@ -4,6 +4,8 @@ import { Link, NavLink, useLocation } from "react-router";
 import { useMe } from "~/features/auth/use-me";
 import { usePendingClaim } from "~/features/donate/pending-claim";
 import { NotificationBell } from "~/features/notifications/bell";
+import { OfflineIndicator } from "~/features/offline/indicator";
+import { useOfflineSync } from "~/features/offline/use-offline-sync";
 import { useAuthState } from "~/features/auth/session";
 import { useT } from "~/i18n";
 import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
@@ -23,6 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Klaim donasi tamu dijalankan di layout supaya berlaku untuk login lewat
   // email maupun Google, di halaman mana pun pengguna mendarat.
   usePendingClaim();
+  // Sinkronisasi antrean offline dipasang di layout supaya berjalan di halaman
+  // mana pun, bukan hanya saat pengguna membuka halaman unggah.
+  const offline = useOfflineSync();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -159,6 +164,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
           ) : null}
         </header>
+
+        <OfflineIndicator
+          pending={offline.pending}
+          syncing={offline.syncing}
+          online={offline.online}
+          onSync={() => void offline.syncNow()}
+        />
 
         <main className="mx-auto w-full max-w-[1120px] flex-1 px-4 py-8">{children}</main>
 

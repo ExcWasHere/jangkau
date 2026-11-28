@@ -236,6 +236,38 @@ menampilkan label "Simulasi" pada setiap tahap.
 
 ---
 
+## Antrean offline
+
+Warga di lokasi bencana sering kehilangan sinyal justru saat laporan paling
+dibutuhkan. Unggahan disimpan di IndexedDB — termasuk foto yang sudah
+dikompres — lalu dikirim otomatis saat jaringan kembali.
+
+| Kejadian | Perilaku |
+|---|---|
+| Jaringan putus saat kirim | Laporan disimpan di perangkat, muncul panel konfirmasi, indikator di bawah header |
+| Sinyal kembali | Sinkron otomatis, tanpa perlu membuka halaman tertentu |
+| Server menolak (4xx) | Dikeluarkan dari antrean dengan pesan; mengulang tidak akan menolong |
+| GPS gagal | Laporan tidak diantrekan: lokasi wajib, dan menebaknya lebih berbahaya |
+
+`clientUuid` dibuat di perangkat dan dipakai server sebagai kunci idempotensi,
+jadi percobaan ulang tidak pernah membuat unggahan ganda.
+
+## Tinjauan penggabungan AI
+
+AI menggabungkan unggahan yang diyakininya membicarakan bencana yang sama.
+Di ambang keyakinan menengah (0,72–0,86) penggabungan tetap dilakukan tetapi
+ditandai `needs_review`, karena salah menggabung lebih merugikan daripada tidak
+menggabung: satu berita bisa menelan laporan dari lokasi berbeda.
+
+Admin memutuskan di tab **Tinjauan merge**:
+
+| Keputusan | Efek |
+|---|---|
+| **Setujui** | `needs_review` dibersihkan, unggahan tetap di berita itu |
+| **Pisahkan** | `fn_split_post` membuat berita baru dari unggahan itu; berita lama tetap punya unggahan utama |
+
+---
+
 ## Moderasi
 
 Pelapor dan pengunjung login bisa melaporkan berita lewat tombol **Laporkan
@@ -336,10 +368,12 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Posko: buat, survei, kebutuhan, stok dengan log | jalan |
 | Admin: antrean verifikasi, PIC, laporan konten, pencairan, jejak audit | jalan |
 | Lapor konten dari UI, sembunyikan berita, notifikasi dalam aplikasi | jalan |
+| Antrean offline (IndexedDB) + sinkron otomatis saat sinyal kembali | jalan |
+| Tinjauan penggabungan AI oleh admin (setujui / pisahkan) | jalan |
 | Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
 | Pencairan bertahap (maks 40%/tahap), bukti belanja, konfirmasi pelapor | jalan |
 | Midtrans | **mock**: `MIDTRANS_SERVER_KEY` kosong → provider mock berlabel "Simulasi"; isi key untuk beralih ke QRIS sandbox tanpa ubah kode |
-| Antrean offline IndexedDB | **belum** — Fase 8 |
+| Antrean offline IndexedDB | jalan |
 | i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |
 
 ## Keterbatasan yang disengaja

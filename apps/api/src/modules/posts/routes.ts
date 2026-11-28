@@ -37,6 +37,14 @@ const MERGE_FALLBACK_DISTANCE_M = 1500;
  * Nilai 0,5 akan gagal melewati ambang dan membuat fallback tidak berefek.
  */
 const MERGE_FALLBACK_CONFIDENCE = 0.75;
+/**
+ * Jumlah kandidat yang dinilai AI, bukan hanya yang terdekat.
+ *
+ * Dua bencana bisa berjarak hampir sama dari satu titik. Kalau hanya kandidat
+ * terdekat yang dinilai dan ternyata bukan kejadian yang sama, merge terlewat
+ * padahal kandidat kedua cocok — dan berita yang seharusnya satu menjadi dua.
+ */
+const MERGE_CANDIDATES_EVALUATED = 3;
 const DEFAULT_EVENT_RADIUS_M = 1500;
 const POST_MAX_DISTANCE_FALLBACK_M = 5000;
 
@@ -84,13 +92,18 @@ postRoutes.post("/", requireAuth, async (c) => {
     );
   }
 
-  const classification = await classifyPost(c.env, {
-    body: input.body,
-    placeLabel: input.placeLabel ?? null,
-    disasterTypeHint: input.disasterTypeHint ?? null,
-  });
-
-  const candidate = await findCandidateEvent(c.env, input.location, input.body, input.placeLabel);
+  // Klasifikasi dan pencarian kandidat tidak saling bergantung, jadi dijalankan
+  // paralel. Berurutan, dua panggilan AI ini memakan ~30 detik; paralel
+  // memotongnya menjadi satu kali waktu tunggu — penting untuk antrean offline
+  // yang mengirim beberapa unggahan sekaligus.
+  const [classification, candidate] = await Promise.all([
+    classifyPost(c.env, {
+      body: input.body,
+      placeLabel: input.placeLabel ?? null,
+      disasterTypeHint: input.disasterTypeHint ?? null,
+    }),
+    findCandidateEvent(c.env, input.location, input.body, input.placeLabel),
+  ]);
   const shouldAttach = candidate !== null && candidate.confidence >= MERGE_REVIEW_CONFIDENCE;
 
   const eventId = shouldAttach
@@ -268,17 +281,28 @@ async function findCandidateEvent(
   const nearest = candidates[0];
   if (!nearest) return null;
 
-  const verdict = await judgeMergeCandidate(
-    env,
-    { title: nearest.title, body: nearest.summary ?? nearest.title, place: nearest.regency },
-    { title: fallbackTitle(body, placeLabel), body, place: placeLabel ?? null },
-  );
+  const incoming = { title: fallbackTitle(body, placeLabel), body, place: placeLabel ?? null };
+  let aiAvailable = false;
 
-  if (verdict) {
-    return verdict.sameEvent ? { eventId: nearest.id, confidence: verdict.confidence } : null;
+  for (const candidate of candidates.slice(0, MERGE_CANDIDATES_EVALUATED)) {
+    const verdict = await judgeMergeCandidate(
+      env,
+      { title: candidate.title, body: candidate.summary ?? candidate.title, place: candidate.regency },
+      incoming,
+    );
+
+    if (!verdict) continue;
+    aiAvailable = true;
+
+    if (verdict.sameEvent) {
+      return { eventId: candidate.id, confidence: verdict.confidence };
+    }
   }
 
-  // AI tidak tersedia: pakai jarak sebagai satu-satunya sinyal.
+  // AI menjawab untuk semua kandidat dan tidak ada yang cocok: buat berita baru.
+  if (aiAvailable) return null;
+
+  // AI tidak tersedia sama sekali: pakai jarak sebagai satu-satunya sinyal.
   return nearest.distanceM <= MERGE_FALLBACK_DISTANCE_M
     ? { eventId: nearest.id, confidence: MERGE_FALLBACK_CONFIDENCE }
     : null;

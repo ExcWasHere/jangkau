@@ -132,6 +132,7 @@ export const en = {
     submitting: "Sending…",
     statusLocating: "Getting your location…",
     statusUploading: "Uploading {count} photos…",
+    statusCompressing: "Compressing photos…",
     statusSending: "Sending report…",
     signInRequired: "Sign in first to upload a disaster report.",
     geolocationFailed: "Location unavailable. Allow location access and try again.",
@@ -531,6 +532,35 @@ export const en = {
     entity: "Entity",
     when: "When",
     detail: "Detail",
+  },
+
+  offline: {
+    indicator: "{count} reports waiting for signal",
+    indicatorSyncing: "Sending {count} reports…",
+    offline: "No signal",
+    syncNow: "Send now",
+    synced: "{count} reports sent",
+    rejected: "{count} reports rejected by the server, check the content",
+    queued: "Report saved on this device and will be sent automatically when signal returns.",
+    queuedTitle: "Report saved on this device",
+    queueFailed: "The report could not be saved on this device.",
+    notSaved: "The report was not sent and could not be queued. Try again.",
+  },
+
+  mergeReview: {
+    tab: "Merge review",
+    intro:
+      "AI merges posts it judges to describe the same disaster. At medium confidence, the merge is flagged for review.",
+    empty: "No merges waiting for review.",
+    similarity: "Similarity {value}",
+    confidence: "Confidence {value}",
+    mergedInto: "Merged into",
+    accept: "Accept merge",
+    split: "Split into a new report",
+    accepted: "Merge accepted",
+    splitDone: "Post split into a new report",
+    titlePrompt: "New report title (leave empty to use the post text)",
+    photoAlt: "Photo from {name}",
   },
 
   guards: {
