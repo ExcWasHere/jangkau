@@ -64,10 +64,20 @@ export type PostMediaInput = z.infer<typeof postMediaSchema>;
  * baru. `clientUuid` dibuat di perangkat dan menjadi kunci idempotensi, supaya
  * retry dari antrean offline tidak pernah membuat post ganda.
  */
+/**
+ * Asal titik lokasi. `device` berarti dari GPS perangkat dan ikut validasi
+ * radius; `manual` berarti dipilih pengguna di peta dan selalu masuk antrean
+ * tinjauan admin.
+ */
+export const LOCATION_SOURCES = ["device", "manual"] as const;
+export type LocationSource = (typeof LOCATION_SOURCES)[number];
+
 export const createPostSchema = z.object({
   clientUuid: z.string().uuid(),
   body: z.string().trim().min(10).max(2000),
   location: coordinateSchema,
+  /** Default `device` supaya klien lama tetap berperilaku sama. */
+  locationSource: z.enum(LOCATION_SOURCES).default("device"),
   capturedAt: z.iso.datetime({ offset: true }),
   placeLabel: z.string().trim().max(120).optional(),
   /** Petunjuk dari pengguna; AI tetap yang menentukan kategori akhir. */

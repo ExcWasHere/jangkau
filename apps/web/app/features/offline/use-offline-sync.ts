@@ -4,13 +4,14 @@ import { useAuthState } from "~/features/auth/session";
 import { useT } from "~/i18n";
 import { useToast } from "~/shared/ui/toast";
 import {
-  countQueued,
+  countByStatus,
   isQueueAvailable,
   listQueuedPosts,
   markAttempt,
+  onQueueChanged,
   removeQueuedPost,
 } from "./queue";
-import { isNetworkFailure, submitPost } from "./submit";
+import { isNetworkFailure, isDuplicateRejection, submitPost } from "./submit";
 
 /**
  * Sinkronisasi antrean unggahan offline.
@@ -25,6 +26,7 @@ export function useOfflineSync() {
   const toast = useToast();
 
   const [pending, setPending] = useState(0);
+  const [failed, setFailed] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [online, setOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
@@ -35,14 +37,20 @@ export function useOfflineSync() {
   const running = useRef(false);
 
   const refreshCount = useCallback(async () => {
-    setPending(await countQueued());
+    // Laporan `failed` tidak ikut dihitung sebagai "menunggu sinyal": ia
+    // menunggu manusia, bukan jaringan.
+    const counts = await countByStatus();
+    setPending(counts.pending);
+    setFailed(counts.failed);
   }, []);
 
   const sync = useCallback(async () => {
     if (!token || running.current) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
-    const queued = await listQueuedPosts();
+    // Laporan `failed` tidak dikirim ulang otomatis: server sudah menolaknya,
+    // dan mengulang tanpa perubahan hanya menghasilkan penolakan yang sama.
+    const queued = (await listQueuedPosts()).filter((item) => item.status !== "failed");
     if (queued.length === 0) {
       await refreshCount();
       return;
@@ -63,6 +71,7 @@ export function useOfflineSync() {
               body: item.body,
               placeLabel: item.placeLabel,
               capturedAt: item.capturedAt,
+              locationSource: item.locationSource,
               location: item.location,
               photos: item.photos,
             },
@@ -71,16 +80,30 @@ export function useOfflineSync() {
           await removeQueuedPost(item.clientUuid);
           sent += 1;
         } catch (error) {
+          // `409 duplicate` berarti unggahan dengan `clientUuid` ini SUDAH
+          // masuk — biasanya karena dua sinkronisasi berjalan bersamaan saat
+          // halaman dimuat ulang. Itu keberhasilan, bukan kegagalan.
+          if (isDuplicateRejection(error)) {
+            await removeQueuedPost(item.clientUuid);
+            sent += 1;
+            continue;
+          }
+
           if (isNetworkFailure(error)) {
             // Jaringan putus lagi: hentikan, sisanya menunggu kesempatan
             // berikutnya. Percobaan tidak dihitung sebagai kesalahan.
             break;
           }
 
-          // Ditolak server: mengulang tidak akan menolong. Catat alasannya
-          // lalu keluarkan dari antrean supaya tidak menyumbat yang lain.
-          await markAttempt(item.clientUuid, error instanceof Error ? error.message : "ditolak");
-          await removeQueuedPost(item.clientUuid);
+          // Ditolak server: laporan TIDAK dibuang. Teks dan foto yang sudah
+          // ditulis di tengah bencana terlalu berharga untuk dihapus karena
+          // satu kesalahan validasi. Ditandai `failed` supaya muncul di
+          // halaman unggah untuk diperbaiki pengguna.
+          await markAttempt(
+            item.clientUuid,
+            error instanceof Error ? error.message : "ditolak",
+            true,
+          );
           failed += 1;
         }
       }
@@ -96,6 +119,9 @@ export function useOfflineSync() {
 
   useEffect(() => {
     void refreshCount();
+    // Perubahan antrean dari halaman lain (mis. laporan diperbaiki di halaman
+    // unggah) harus langsung memperbarui indikator di layout.
+    return onQueueChanged(() => void refreshCount());
   }, [refreshCount]);
 
   useEffect(() => {
@@ -120,7 +146,7 @@ export function useOfflineSync() {
     };
   }, [sync]);
 
-  return { pending, syncing, online, syncNow: sync, refreshCount };
+  return { pending, failed, syncing, online, syncNow: sync, refreshCount };
 }
 
 export { isQueueAvailable };

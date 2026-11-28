@@ -9,18 +9,20 @@ import { useT } from "~/i18n";
  */
 export function OfflineIndicator({
   pending,
+  failed,
   syncing,
   online,
   onSync,
 }: {
   pending: number;
+  failed: number;
   syncing: boolean;
   online: boolean;
   onSync: () => void;
 }) {
   const { t } = useT();
 
-  if (pending === 0 && online) return null;
+  if (pending === 0 && failed === 0 && online) return null;
 
   return (
     <div
@@ -37,15 +39,17 @@ export function OfflineIndicator({
             ? t("offline.indicatorSyncing", { count: pending })
             : pending > 0
               ? t("offline.indicator", { count: pending })
-              : t("offline.offline")}
+              : failed > 0
+                ? t("offline.needsFix", { count: failed })
+                : t("offline.offline")}
         </span>
 
-        {pending > 0 && online && !syncing ? (
-          <button
-            type="button"
-            onClick={onSync}
-            className="ml-auto font-semibold underline"
-          >
+        {failed > 0 ? (
+          <a href="/unggah" className="ml-auto font-semibold underline">
+            {t("offline.fixNow")}
+          </a>
+        ) : pending > 0 && online && !syncing ? (
+          <button type="button" onClick={onSync} className="ml-auto font-semibold underline">
             {t("offline.syncNow")}
           </button>
         ) : null}

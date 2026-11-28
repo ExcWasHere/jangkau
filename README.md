@@ -252,6 +252,48 @@ dikompres — lalu dikirim otomatis saat jaringan kembali.
 `clientUuid` dibuat di perangkat dan dipakai server sebagai kunci idempotensi,
 jadi percobaan ulang tidak pernah membuat unggahan ganda.
 
+## Lokasi: perangkat vs manual
+
+Setiap unggahan mencatat **asal** titiknya di `posts.location_source`:
+
+| Asal | Sumber | Validasi radius | Tinjauan admin |
+|---|---|---|---|
+| `device` | GPS perangkat | ya (radius event + 5 km) | hanya jika akurasi > 1 km |
+| `manual` | dipilih pengguna di peta | tidak | selalu |
+
+Alasannya: browser tidak bisa menyalakan GPS, dan setelah pengguna menekan
+**Blokir** izin lokasi, browser tidak akan bertanya lagi. Menolak laporan
+selamanya berarti warga tanpa GPS kehilangan satu-satunya kanal. Yang dijaga
+bukan radiusnya, melainkan **kejujuran klaim**: titik manual tidak membuktikan
+pelapor berada di lokasi, jadi ia ditandai dan masuk antrean tinjauan.
+
+Alasan tinjauan disimpan di `posts.review_reasons` (array), karena bisa
+bertumpuk: `manual_location`, `poor_accuracy`, `merge_low_confidence`,
+`ai_unavailable`. Dibersihkan setelah admin memutuskan; riwayatnya ada di
+`audit_logs`.
+
+Alur di UI:
+
+1. Izin lokasi diminta **saat halaman dibuka**, bukan saat menekan kirim.
+2. Fix dengan akurasi > 500 m diperbaiki lewat `watchPosition` sampai 8 detik.
+3. Akurasi > 1 km ditolak dan ditawari peta; tetap tersimpan jika pengguna
+   memaksa lewat peta (ditandai manual).
+4. Izin diblokir → tombol "Ambil ulang" disembunyikan (tidak akan berhasil),
+   pesan menjelaskan cara membuka blokir, dan peta jadi jalur utama.
+
+## Laporan yang ditolak server
+
+Ditolak ≠ dibuang. Laporan berstatus `failed` di antrean, muncul di halaman
+unggah dengan alasannya, dan bisa diperbaiki lalu dikirim ulang. Teks dan foto
+yang ditulis di tengah bencana terlalu berharga untuk hilang karena satu
+kesalahan validasi.
+
+Satu pengecualian: **`409 duplicate` dianggap berhasil.** Artinya unggahan
+dengan `clientUuid` itu sudah masuk — biasanya karena dua sinkronisasi berjalan
+bersamaan saat halaman dimuat ulang.
+
+---
+
 ## Tinjauan penggabungan AI
 
 AI menggabungkan unggahan yang diyakininya membicarakan bencana yang sama.
@@ -369,6 +411,8 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Admin: antrean verifikasi, PIC, laporan konten, pencairan, jejak audit | jalan |
 | Lapor konten dari UI, sembunyikan berita, notifikasi dalam aplikasi | jalan |
 | Antrean offline (IndexedDB) + sinkron otomatis saat sinyal kembali | jalan |
+| Lokasi manual (peta) untuk GPS gagal, ditandai & masuk tinjauan | jalan |
+| Laporan ditolak server disimpan untuk diperbaiki, bukan dibuang | jalan |
 | Tinjauan penggabungan AI oleh admin (setujui / pisahkan) | jalan |
 | Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
 | Pencairan bertahap (maks 40%/tahap), bukti belanja, konfirmasi pelapor | jalan |

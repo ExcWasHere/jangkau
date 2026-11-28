@@ -19,6 +19,7 @@ export type DonationStatus = "pending" | "paid" | "expired" | "failed" | "refund
 export type EventStatus = "open" | "monitoring" | "resolved" | "archived";
 export type ExpenseStatus = "submitted" | "confirmed" | "disputed";
 export type LedgerEntryKind = "donation_in" | "disbursement_out" | "refund" | "fee";
+export type LocationSource = "device" | "manual";
 export type ModerationReason = "hoax" | "duplicate" | "irrelevant" | "graphic" | "other";
 export type ModerationStatus = "open" | "reviewed" | "actioned" | "dismissed";
 export type NeedCategory = "food" | "water" | "health" | "shelter" | "clothing" | "sanitation" | "energy" | "education" | "other";
@@ -288,6 +289,8 @@ export interface PostsRow {
   is_primary: boolean;
   created_at: string;
   updated_at: string;
+  location_source: LocationSource;
+  review_reasons: string[];
 }
 
 export interface ProfileBadgesRow {
@@ -635,6 +638,7 @@ export interface Database {
       event_status: EventStatus;
       expense_status: ExpenseStatus;
       ledger_entry_kind: LedgerEntryKind;
+      location_source: LocationSource;
       moderation_reason: ModerationReason;
       moderation_status: ModerationStatus;
       need_category: NeedCategory;
