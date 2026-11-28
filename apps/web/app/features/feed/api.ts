@@ -69,6 +69,7 @@ export type EventDetail = {
   posko: PoskoSummary[];
   myApplication: { id: string; status: string; pitch: string | null } | null;
   viewer: {
+    profileId: string;
     accountType: string;
     isAdmin: boolean;
     distributor: { label: string; verificationStatus: string } | null;

@@ -213,6 +213,7 @@ eventRoutes.get("/:id", optionalAuth, async (c) => {
     myApplication: myPicResult.data ?? null,
     viewer: viewer
       ? {
+          profileId: viewer.id,
           accountType: viewer.accountType,
           isAdmin: viewer.isAdmin,
           distributor: viewer.distributor,

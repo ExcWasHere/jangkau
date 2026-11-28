@@ -120,7 +120,8 @@ Isi nilainya. **Jangan commit** `.env` atau `.dev.vars` — sudah di `.gitignore
 
 ```bash
 bun run dev          # web :5173 + api :8787 bersamaan
-bun run dev:web
+bun run dev:web      # web memakai API lokal (lihat scripts/dev.mjs)
+bun run dev:remote   # web memakai URL API dari .env
 bun run dev:api
 ```
 
@@ -181,6 +182,8 @@ Catatan penting:
 | `demo.org@jangkau.test` | penyalur organisasi | terverifikasi, PIC Kebakaran Bukittinggi |
 | `demo.relawan@jangkau.test` | penyalur relawan | terverifikasi, PIC Longsor Cianjur |
 | `demo.kreator@jangkau.test` | penyalur kreator | terverifikasi, PIC Kebakaran Bukittinggi |
+| `demo.penyalurbaru@jangkau.test` | penyalur relawan | terverifikasi, siap mengajukan PIC |
+| `demo.yayasanbaru@jangkau.test` | penyalur organisasi | menunggu verifikasi, untuk demo antrean admin |
 | `demo.warga1..5@jangkau.test` | warga | sebagian punya lencana Donatur |
 | `warga1..75@jangkau.test` | warga | pengisi dukungan, supaya ambang 50 like nyata |
 
@@ -230,6 +233,8 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 | `/bencana/:id` | publik | Detail berita, pengunggah, penanggung jawab, posko |
 | `/unggah` | login | Unggah laporan + foto + GPS |
 | `/saya` | login | Profil, lencana, status verifikasi penyalur |
+| `/dashboard` | login | Dasbor penyalur: dokumen verifikasi, pengajuan PIC, profil |
+| `/admin` | admin | Antrean verifikasi, pengajuan PIC, laporan konten |
 | `/masuk`, `/daftar` | publik | Email/password + Google; pilih tipe akun |
 
 ## Alur inti
@@ -254,7 +259,11 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Auth: email/password + Google, pilih tipe akun (Warga/Penyalur) | jalan |
 | Tema gelap/terang + token desain dari `design.md` | jalan |
 | Skeleton, toast, menu preferensi, navigasi ponsel | jalan |
-| Verifikasi penyalur, pengajuan PIC, posko, donasi, pencairan | **belum** — Fase 4–6 |
+| Verifikasi penyalur (dokumen per label, centang otomatis setelah lengkap) | jalan |
+| Pengajuan penanggung jawab + persetujuan admin | jalan |
+| Posko: buat, survei, kebutuhan, stok dengan log | jalan |
+| Admin: antrean verifikasi, PIC, laporan konten | jalan |
+| Donasi, pencairan, bukti belanja | **belum** — Fase 5–6 |
 | Midtrans | **belum** — akan memakai adapter mock di Fase 5 |
 | Antrean offline IndexedDB | **belum** — Fase 8 |
 | i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |

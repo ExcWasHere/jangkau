@@ -48,6 +48,22 @@ export type VerificationDocKind = (typeof VERIFICATION_DOC_KINDS)[number];
 export const DOC_REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
 export type DocReviewStatus = (typeof DOC_REVIEW_STATUSES)[number];
 
+/**
+ * Dokumen wajib per label. Penyalur baru bisa mendapat centang terverifikasi
+ * setelah SEMUA dokumen di daftarnya berstatus `approved` oleh admin.
+ *
+ * Daftar ini juga dipakai UI untuk menampilkan mana yang masih kurang, jadi
+ * jangan disimpan di dua tempat.
+ */
+export const REQUIRED_VERIFICATION_DOCS: Record<
+  DistributorLabel,
+  readonly VerificationDocKind[]
+> = {
+  organization: ["legal_deed", "sk_kemenkumham", "pic_identity", "org_letter"],
+  volunteer: ["pic_identity", "pic_selfie", "field_proof"],
+  creator: ["pic_identity", "pic_selfie", "social_profile", "follower_stats"],
+};
+
 // ---------------------------------------------------------------- bencana
 
 export const DISASTER_TYPES = [
