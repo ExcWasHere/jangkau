@@ -5,13 +5,14 @@ import type { Route } from "./+types/unggah";
 import { createPostSchema } from "@jangkau/shared";
 
 import { useSession } from "~/features/auth/session";
+import { translatorFromMatches, useT } from "~/i18n";
 import { apiFetch, ApiError } from "~/shared/api/client";
-import { publicEnv } from "~/shared/lib/env";
-import { getSupabaseBrowserClient } from "~/shared/lib/supabase";
 import { AppShell } from "~/shared/layout/app-shell";
+import { useToast } from "~/shared/ui/toast";
 
-export function meta({}: Route.MetaArgs) {
-  return [{ title: "Unggah laporan bencana — Jangkau" }];
+export function meta({ matches }: Route.MetaArgs) {
+  const t = translatorFromMatches(matches);
+  return [{ title: t("meta.uploadTitle") }];
 }
 
 type PreparedMedia = { key: string; mimeType: string; sizeBytes: number };
@@ -35,8 +36,10 @@ async function compress(file: File): Promise<Blob> {
 }
 
 export default function UploadPage() {
+  const { t } = useT();
   const { token, ready } = useSession();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [body, setBody] = useState("");
   const [placeLabel, setPlaceLabel] = useState("");
@@ -84,13 +87,13 @@ export default function UploadPage() {
     setError(null);
 
     if (!token) {
-      setError("Masuk dulu untuk mengunggah laporan.");
+      setError(t("upload.signInRequired"));
       return;
     }
 
     setBusy(true);
     try {
-      setStatus("Mengambil lokasi…");
+      setStatus(t("upload.statusLocating"));
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -98,10 +101,10 @@ export default function UploadPage() {
         });
       });
 
-      setStatus(`Mengunggah ${files.length} foto…`);
+      if (files.length > 0) setStatus(t("upload.statusUploading", { count: files.length }));
       const media = await uploadMedia(files);
 
-      setStatus("Mengirim laporan…");
+      setStatus(t("upload.statusSending"));
       const payload = {
         clientUuid: crypto.randomUUID(),
         body,
@@ -117,21 +120,23 @@ export default function UploadPage() {
 
       const parsed = createPostSchema.safeParse(payload);
       if (!parsed.success) {
-        setError(parsed.error.issues[0]?.message ?? "Laporan belum lengkap");
+        setError(parsed.error.issues[0]?.message ?? t("upload.incomplete"));
         return;
       }
 
-      const result = await apiFetch<{ eventId: string; merged: boolean; needsReview: boolean }>(
-        "/posts",
-        { method: "POST", token, body: JSON.stringify(payload) },
-      );
+      const result = await apiFetch<{ eventId: string; merged: boolean }>("/posts", {
+        method: "POST",
+        token,
+        body: JSON.stringify(payload),
+      });
 
+      toast.push(result.merged ? t("upload.successMerged") : t("upload.successNew"), "success");
       navigate(`/bencana/${result.eventId}`);
     } catch (cause) {
       if (cause instanceof ApiError) setError(cause.message);
       else if (cause instanceof GeolocationPositionError) {
-        setError("Lokasi tidak bisa diambil. Izinkan akses lokasi lalu coba lagi.");
-      } else setError(cause instanceof Error ? cause.message : "Gagal mengirim laporan");
+        setError(t("upload.geolocationFailed"));
+      } else setError(cause instanceof Error ? cause.message : t("upload.incomplete"));
     } finally {
       setBusy(false);
       setStatus(null);
@@ -142,9 +147,9 @@ export default function UploadPage() {
     return (
       <AppShell>
         <p className="rounded-xl border border-line bg-surface px-5 py-6 text-[14px]">
-          Masuk dulu untuk mengunggah laporan bencana.{" "}
-          <a href="/masuk" className="font-semibold text-brand underline">
-            Masuk
+          {t("upload.signInRequired")}{" "}
+          <a href="/masuk" className="font-semibold text-brand-text underline">
+            {t("nav.signIn")}
           </a>
         </p>
       </AppShell>
@@ -155,15 +160,12 @@ export default function UploadPage() {
     <AppShell>
       <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-[560px] flex-col gap-5">
         <header className="flex flex-col gap-1">
-          <h1 className="text-[24px] font-bold">Unggah laporan bencana</h1>
-          <p className="text-[13px] text-muted">
-            Lokasi diambil dari perangkat dan wajib. Laporan yang membicarakan bencana yang sama akan
-            digabung jadi satu berita.
-          </p>
+          <h1 className="text-[24px] font-bold">{t("upload.title")}</h1>
+          <p className="text-[13px] text-muted">{t("upload.intro")}</p>
         </header>
 
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
-          Apa yang terjadi?
+          {t("upload.bodyLabel")}
           <textarea
             required
             minLength={10}
@@ -171,26 +173,26 @@ export default function UploadPage() {
             rows={5}
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="Contoh: Air bah masuk jam 2 pagi, tiga dusun terendam, warga mengungsi ke balai desa. Butuh air bersih dan selimut."
+            placeholder={t("upload.bodyPlaceholder")}
             className="rounded-lg border border-line bg-surface px-3 py-2 text-[14px] font-normal"
           />
           <span className="text-[12px] font-normal text-muted">{body.length}/2000</span>
         </label>
 
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
-          Nama lokasi (opsional)
+          {t("upload.placeLabel")}
           <input
             type="text"
             maxLength={120}
             value={placeLabel}
             onChange={(event) => setPlaceLabel(event.target.value)}
-            placeholder="Dusun Krajan, Kromengan"
+            placeholder={t("upload.placePlaceholder")}
             className="rounded-lg border border-line bg-surface px-3 py-2 text-[14px] font-normal"
           />
         </label>
 
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
-          Foto (maksimal 4)
+          {t("upload.photosLabel")}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -198,10 +200,7 @@ export default function UploadPage() {
             onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 4))}
             className="text-[13px] font-normal"
           />
-          <span className="text-[12px] font-normal text-muted">
-            Foto dikompres di perangkat sebelum diunggah. Jangan memotret wajah orang yang bisa
-            dikenali.
-          </span>
+          <span className="text-[12px] font-normal text-muted">{t("upload.photosHint")}</span>
         </label>
 
         {error ? (
@@ -215,7 +214,7 @@ export default function UploadPage() {
           disabled={busy}
           className="rounded-lg bg-brand px-4 py-3 text-[14px] font-semibold text-white disabled:opacity-50"
         >
-          {busy ? (status ?? "Mengirim…") : "Kirim laporan"}
+          {busy ? (status ?? t("upload.submitting")) : t("upload.submit")}
         </button>
       </form>
     </AppShell>

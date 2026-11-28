@@ -76,18 +76,18 @@ values
    'posts/2026/11/tangerang-prison-fire.webp', now() - interval '5 days', now() - interval '3 hours',
    '18f473eb-851c-4c51-917f-f3bda576c9b2'),
 
-  ('e0000000-0000-4000-8000-000000000003','Erupsi Gunung Merapi',
-   'volcanic_eruption','Hujan abu vulkanik melanda lima desa di lereng selatan. Warga dievakuasi ke barak pengungsian.',
-   st_setsrid(st_makepoint(110.4461,-7.5407),4326)::geography, 3000,
-   'Kaliurang','Pakem','Sleman','DI Yogyakarta', 3,'open',
-   'posts/2026/11/merapi-eruption.webp', now() - interval '12 hours', now() - interval '2 hours',
+  ('e0000000-0000-4000-8000-000000000003','Erupsi Gunung Semeru',
+   'volcanic_eruption','Guguran awan panas dan hujan abu melanda desa di lereng tenggara. Warga mengungsi ke barak pengungsian.',
+   st_setsrid(st_makepoint(112.9220,-8.1080),4326)::geography, 3000,
+   'Supiturang','Pronojiwo','Lumajang','Jawa Timur', 3,'open',
+   'posts/2026/11/semeru-eruption.webp', now() - interval '12 hours', now() - interval '2 hours',
    'f9315f1c-0a82-4878-afb6-fdd42beac9af'),
 
-  ('e0000000-0000-4000-8000-000000000004','Banjir Rob Tanjung Mas',
-   'flood','Rob merendam permukiman dan area pelabuhan. Warga bertahan di lantai dua, akses jalan tergenang.',
-   st_setsrid(st_makepoint(110.4265,-6.9495),4326)::geography, 2000,
-   'Tanjung Mas','Semarang Utara','Semarang','Jawa Tengah', 4,'monitoring',
-   'posts/2026/11/semarang-flood.webp', now() - interval '4 days', now() - interval '6 hours',
+  ('e0000000-0000-4000-8000-000000000004','Banjir Sumatera Barat',
+   'flood','Banjir bandang merendam permukiman dan memutus jalan kabupaten. Warga mengungsi ke bangunan lebih tinggi.',
+   st_setsrid(st_makepoint(100.2800,-0.4600),4326)::geography, 2000,
+   'Lubuk Alung','Lubuk Alung','Padang Pariaman','Sumatera Barat', 4,'monitoring',
+   'posts/2026/11/sumbar-flood.webp', now() - interval '4 days', now() - interval '6 hours',
    'd44d757e-affa-477e-a72a-ef5e47336e04'),
 
   ('e0000000-0000-4000-8000-000000000005','Banjir Tanjung Duren',
@@ -120,14 +120,14 @@ from (values
    'Api melalap blok hunian dan menewaskan puluhan orang. Keluarga korban berkumpul di depan gerbang mencari informasi.',
    st_setsrid(st_makepoint(106.6319,-6.1783),4326)::geography, 1200,
    'Cipondoh','Cipondoh','Tangerang','Banten', 5, 'posts/2026/11/tangerang-prison-fire.webp'),
-  ('e0000000-0000-4000-8000-000000000003'::uuid, 'Erupsi Gunung Merapi', 'volcanic_eruption'::disaster_type,
-   'Hujan abu vulkanik melanda lima desa di lereng selatan. Warga dievakuasi ke barak pengungsian.',
-   st_setsrid(st_makepoint(110.4461,-7.5407),4326)::geography, 3000,
-   'Kaliurang','Pakem','Sleman','DI Yogyakarta', 3, 'posts/2026/11/merapi-eruption.webp'),
-  ('e0000000-0000-4000-8000-000000000004'::uuid, 'Banjir Rob Tanjung Mas', 'flood'::disaster_type,
-   'Rob merendam permukiman dan area pelabuhan. Warga bertahan di lantai dua, akses jalan tergenang.',
-   st_setsrid(st_makepoint(110.4265,-6.9495),4326)::geography, 2000,
-   'Tanjung Mas','Semarang Utara','Semarang','Jawa Tengah', 4, 'posts/2026/11/semarang-flood.webp'),
+  ('e0000000-0000-4000-8000-000000000003'::uuid, 'Erupsi Gunung Semeru', 'volcanic_eruption'::disaster_type,
+   'Guguran awan panas dan hujan abu melanda desa di lereng tenggara. Warga mengungsi ke barak pengungsian.',
+   st_setsrid(st_makepoint(112.9220,-8.1080),4326)::geography, 3000,
+   'Supiturang','Pronojiwo','Lumajang','Jawa Timur', 3, 'posts/2026/11/semeru-eruption.webp'),
+  ('e0000000-0000-4000-8000-000000000004'::uuid, 'Banjir Sumatera Barat', 'flood'::disaster_type,
+   'Banjir bandang merendam permukiman dan memutus jalan kabupaten. Warga mengungsi ke bangunan lebih tinggi.',
+   st_setsrid(st_makepoint(100.2800,-0.4600),4326)::geography, 2000,
+   'Lubuk Alung','Lubuk Alung','Padang Pariaman','Sumatera Barat', 4, 'posts/2026/11/sumbar-flood.webp'),
   ('e0000000-0000-4000-8000-000000000005'::uuid, 'Banjir Tanjung Duren', 'flood'::disaster_type,
    'Banjir setinggi dada orang dewasa merendam permukiman padat. Warga mengungsi ke musala dan rumah kerabat.',
    st_setsrid(st_makepoint(106.7930,-6.1680),4326)::geography, 2500,
@@ -158,12 +158,12 @@ values
   ('f0000000-0000-4000-8000-000000000004','c0000000-0000-4000-8000-000000000004',
    'e0000000-0000-4000-8000-000000000003','f9315f1c-0a82-4878-afb6-fdd42beac9af',
    'Hujan abu sejak subuh, atap rumah tebal abu. Warga butuh masker, air bersih, dan susu untuk anak-anak.',
-   st_setsrid(st_makepoint(110.4462,-7.5408),4326)::geography, 30,'Kaliurang', now() - interval '12 hours', true,'health',0.87,'ag/gemini-3.8-flash-high'),
+   st_setsrid(st_makepoint(112.9221,-8.1081),4326)::geography, 30,'Supiturang', now() - interval '12 hours', true,'health',0.87,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000005','c0000000-0000-4000-8000-000000000005',
    'e0000000-0000-4000-8000-000000000004','d44d757e-affa-477e-a72a-ef5e47336e04',
    'Rob merendam jalan pelabuhan sejak pagi. Warga di RT 3 belum bisa keluar rumah, butuh makanan dan obat-obatan.',
-   st_setsrid(st_makepoint(110.4266,-6.9496),4326)::geography, 22,'Tanjung Mas', now() - interval '4 days', true,'food',0.92,'ag/gemini-3.8-flash-high'),
+   st_setsrid(st_makepoint(100.2801,-0.4601),4326)::geography, 22,'Lubuk Alung', now() - interval '4 days', true,'food',0.92,'ag/gemini-3.8-flash-high'),
 
   ('f0000000-0000-4000-8000-000000000006','c0000000-0000-4000-8000-000000000006',
    'e0000000-0000-4000-8000-000000000005','13879bda-33cd-4e3c-b242-75f9e16d90e2',
@@ -185,8 +185,8 @@ insert into post_media (post_id, r2_key, mime_type, size_bytes, width, height, s
 values
   ('f0000000-0000-4000-8000-000000000001','posts/2026/11/jakarta-flood-2020.webp','image/webp',281396,1600,1200,0),
   ('f0000000-0000-4000-8000-000000000003','posts/2026/11/tangerang-prison-fire.webp','image/webp',280736,1600,1067,0),
-  ('f0000000-0000-4000-8000-000000000004','posts/2026/11/merapi-eruption.webp','image/webp',324748,1600,1408,0),
-  ('f0000000-0000-4000-8000-000000000005','posts/2026/11/semarang-flood.webp','image/webp',144236,1600,1052,0),
+  ('f0000000-0000-4000-8000-000000000004','posts/2026/11/semeru-eruption.webp','image/webp',16384,876,584,0),
+  ('f0000000-0000-4000-8000-000000000005','posts/2026/11/sumbar-flood.webp','image/webp',137216,1600,1066,0),
   ('f0000000-0000-4000-8000-000000000006','posts/2026/11/jakarta-flood-tanjung-duren.webp','image/webp',670692,1600,2133,0)
 on conflict (r2_key) do nothing;
 
@@ -256,8 +256,8 @@ values
    now() - interval '3 days','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e'),
 
   ('a0000000-0000-4000-8000-000000000003','e0000000-0000-4000-8000-000000000004',
-   'Posko RW 03 Tanjung Mas','Jl. Ronggolawe, dekat pelabuhan',
-   st_setsrid(st_makepoint(110.4269,-6.9499),4326)::geography, 300, 260, 300,'reporter','active',
+   'Posko Korong Lubuk Alung','Jl. Raya Padang-Bukittinggi, km 42',
+   st_setsrid(st_makepoint(100.2804,-0.4604),4326)::geography, 300, 260, 300,'reporter','active',
    now() - interval '3 days','5165d200-f27e-49c6-b740-23c7add9c7ba'),
 
   -- posko yang belum disurvei: tidak muncul di halaman publik
@@ -312,10 +312,10 @@ from (values
    st_setsrid(st_makepoint(106.6320,-6.1784),4326)::geography, 'Cipondoh'),
   ('f0000000-0000-4000-8000-000000000004'::uuid,
    'Hujan abu sejak subuh, atap rumah tebal abu. Warga butuh masker, air bersih, dan susu untuk anak-anak.',
-   st_setsrid(st_makepoint(110.4462,-7.5408),4326)::geography, 'Kaliurang'),
+   st_setsrid(st_makepoint(112.9221,-8.1081),4326)::geography, 'Supiturang'),
   ('f0000000-0000-4000-8000-000000000005'::uuid,
-   'Rob merendam jalan pelabuhan sejak pagi. Warga di RT 3 belum bisa keluar rumah, butuh makanan dan obat-obatan.',
-   st_setsrid(st_makepoint(110.4266,-6.9496),4326)::geography, 'Tanjung Mas'),
+   'Banjir merendam jalan kabupaten sejak pagi. Warga di RT 3 belum bisa keluar rumah, butuh makanan dan obat-obatan.',
+   st_setsrid(st_makepoint(100.2801,-0.4601),4326)::geography, 'Lubuk Alung'),
   ('f0000000-0000-4000-8000-000000000006'::uuid,
    'Banjir setinggi dada di Tanjung Duren. Warga mengungsi ke musala, butuh selimut, popok, dan air bersih.',
    st_setsrid(st_makepoint(106.7931,-6.1681),4326)::geography, 'Tanjung Duren'),
@@ -328,6 +328,19 @@ from (values
 ) as v(id, body, location, place_label)
 where p.id = v.id;
 
+-- Foto post diselaraskan dengan event di atas. Hapus lalu insert ulang, bukan
+-- `update ... set r2_key`: `r2_key` unik global, dan baris baru sudah dibuat
+-- oleh insert sebelumnya sehingga update akan menabrak unique constraint.
+delete from post_media
+ where post_id in ('f0000000-0000-4000-8000-000000000004',
+                   'f0000000-0000-4000-8000-000000000005');
+
+insert into post_media (post_id, r2_key, mime_type, size_bytes, width, height, sort_order)
+values
+  ('f0000000-0000-4000-8000-000000000004','posts/2026/11/semeru-eruption.webp','image/webp',16384,876,584,0),
+  ('f0000000-0000-4000-8000-000000000005','posts/2026/11/sumbar-flood.webp','image/webp',137216,1600,1066,0)
+on conflict (r2_key) do nothing;
+
 update relief_posts as r set
   name = v.name, address = v.address, location = v.location
 from (values
@@ -335,8 +348,8 @@ from (values
    st_setsrid(st_makepoint(106.6322,-6.1786),4326)::geography),
   ('a0000000-0000-4000-8000-000000000002'::uuid, 'Posko Musholla Al-Ikhlas', 'Jl. KH Hasyim Ashari, gang samping',
    st_setsrid(st_makepoint(106.6329,-6.1778),4326)::geography),
-  ('a0000000-0000-4000-8000-000000000003'::uuid, 'Posko RW 03 Tanjung Mas', 'Jl. Ronggolawe, dekat pelabuhan',
-   st_setsrid(st_makepoint(110.4269,-6.9499),4326)::geography)
+  ('a0000000-0000-4000-8000-000000000003'::uuid, 'Posko Korong Lubuk Alung', 'Jl. Raya Padang-Bukittinggi, km 42',
+   st_setsrid(st_makepoint(100.2804,-0.4604),4326)::geography)
 ) as v(id, name, address, location)
 where r.id = v.id;
 

@@ -1,44 +1,35 @@
 import { Link } from "react-router";
 
+import { useT } from "~/i18n";
 import type { FeedItem } from "./api";
 import { EventCard } from "./event-card";
 
-type Rack = {
-  key: "leaderboard" | "pantau" | "terbaru";
-  title: string;
-  hint: string;
-};
+type RackKey = "leaderboard" | "pantau" | "terbaru";
 
-const RACKS: Rack[] = [
+const RACKS: Array<{ key: RackKey; title: "feed.leaderboardTitle" | "feed.pantauTitle" | "feed.terbaruTitle"; hint: "feed.leaderboardHint" | "feed.pantauHint" | "feed.terbaruHint"; empty: "feed.leaderboardEmpty" | "feed.pantauEmpty" | "feed.terbaruEmpty" }> = [
   {
     key: "leaderboard",
-    title: "Leaderboard",
-    hint: "Berita yang sudah menembus ambang dukungan dan siap diambil penyalur.",
+    title: "feed.leaderboardTitle",
+    hint: "feed.leaderboardHint",
+    empty: "feed.leaderboardEmpty",
   },
   {
     key: "pantau",
-    title: "Pantau",
-    hint: "Sudah ada penanggung jawab. Kebutuhan posko dan bukti belanja terbuka untuk publik.",
+    title: "feed.pantauTitle",
+    hint: "feed.pantauHint",
+    empty: "feed.pantauEmpty",
   },
   {
     key: "terbaru",
-    title: "Terbaru",
-    hint: "Laporan terbaru dari warga di lokasi.",
+    title: "feed.terbaruTitle",
+    hint: "feed.terbaruHint",
+    empty: "feed.terbaruEmpty",
   },
 ];
 
-function emptyMessage(section: Rack["key"]): string {
-  switch (section) {
-    case "leaderboard":
-      return "Belum ada berita yang menembus ambang dukungan.";
-    case "pantau":
-      return "Belum ada berita yang punya penanggung jawab.";
-    default:
-      return "Belum ada laporan. Jadilah yang pertama melapor.";
-  }
-}
-
 export function FeedRacks({ items }: { items: FeedItem[] }) {
+  const { t } = useT();
+
   const grouped = new Map<string, FeedItem[]>();
   for (const item of items) {
     const list = grouped.get(item.section) ?? [];
@@ -54,17 +45,20 @@ export function FeedRacks({ items }: { items: FeedItem[] }) {
           <section key={rack.key} aria-labelledby={`rack-${rack.key}`}>
             <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2 id={`rack-${rack.key}`} className="text-[20px] font-bold">
-                {rack.title}
+                {t(rack.title)}
               </h2>
-              <Link to={`/${rack.key}`} className="text-[13px] font-semibold text-brand hover:underline">
-                Lihat semua
+              <Link
+                to={`/${rack.key}`}
+                className="text-[13px] font-semibold text-brand-text hover:underline"
+              >
+                {t("feed.seeAll")}
               </Link>
-              <p className="basis-full text-[13px] text-muted">{rack.hint}</p>
+              <p className="basis-full text-[13px] text-muted">{t(rack.hint)}</p>
             </div>
 
             {rows.length === 0 ? (
               <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[13px] text-muted">
-                {emptyMessage(rack.key)}
+                {t(rack.empty)}
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

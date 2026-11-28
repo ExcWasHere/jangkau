@@ -3,55 +3,58 @@ import type { Route } from "./+types/saya";
 
 import { RequireAuth } from "~/features/auth/guards";
 import { useMe } from "~/features/auth/use-me";
+import { translatorFromMatches, useT } from "~/i18n";
 import { AppShell } from "~/shared/layout/app-shell";
 
-export function meta({}: Route.MetaArgs) {
-  return [{ title: "Akun saya — Jangkau" }];
+export function meta({ matches }: Route.MetaArgs) {
+  const t = translatorFromMatches(matches);
+  return [{ title: t("meta.accountTitle") }];
 }
 
-const BADGE_TEXT: Record<string, string> = {
-  reporter: "Pelapor",
-  funder: "Donatur",
-};
+const BADGE_KEY = {
+  reporter: "account.badgeReporter",
+  funder: "account.badgeFunder",
+} as const;
 
-const LABEL_TEXT: Record<string, string> = {
-  organization: "Organisasi tanggap bencana",
-  volunteer: "Relawan",
-  creator: "Kreator",
-};
+const LABEL_KEY = {
+  organization: "event.labelOrganization",
+  volunteer: "event.labelVolunteer",
+  creator: "event.labelCreator",
+} as const;
 
-const VERIFICATION_TEXT: Record<string, string> = {
-  unverified: "Belum diverifikasi",
-  pending: "Menunggu tinjauan admin",
-  verified: "Terverifikasi",
-  rejected: "Ditolak",
-  suspended: "Ditangguhkan",
-};
+const VERIFICATION_KEY = {
+  unverified: "account.verificationUnverified",
+  pending: "account.verificationPending",
+  verified: "account.verificationVerified",
+  rejected: "account.verificationRejected",
+  suspended: "account.verificationSuspended",
+} as const;
 
 function AccountBody() {
+  const { t } = useT();
   const { me, isVerifiedDistributor } = useMe();
   if (!me) return null;
+
+  const role =
+    me.accountType === "distributor" ? t("account.roleDistributor") : t("account.roleResident");
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-[26px] font-bold">{me.displayName}</h1>
         <p className="text-[13px] text-muted">
-          {me.accountType === "distributor" ? "Penyalur bantuan" : "Warga"}
-          {me.isAdmin ? " · Admin" : ""}
+          {role}
+          {me.isAdmin ? ` · ${t("account.roleAdmin")}` : ""}
           {me.email ? ` · ${me.email}` : ""}
         </p>
       </header>
 
       <section aria-labelledby="lencana">
         <h2 id="lencana" className="text-[16px] font-semibold">
-          Lencana
+          {t("account.badgesTitle")}
         </h2>
         {me.badges.length === 0 ? (
-          <p className="mt-2 text-[13px] text-muted">
-            Belum ada lencana. Unggah laporan bencana untuk mendapat lencana Pelapor, atau berdonasi
-            untuk lencana Donatur.
-          </p>
+          <p className="mt-2 text-[13px] text-muted">{t("account.badgesEmpty")}</p>
         ) : (
           <ul className="mt-2 flex flex-wrap gap-2">
             {me.badges.map((badge) => (
@@ -59,7 +62,7 @@ function AccountBody() {
                 key={badge}
                 className="rounded-full border border-line bg-surface px-3 py-1 text-[12px] font-semibold"
               >
-                {BADGE_TEXT[badge] ?? badge}
+                {t(BADGE_KEY[badge] ?? "account.badgeReporter")}
               </li>
             ))}
           </ul>
@@ -69,11 +72,11 @@ function AccountBody() {
       {me.distributor ? (
         <section aria-labelledby="penyalur" className="rounded-xl border border-line bg-surface p-5">
           <h2 id="penyalur" className="text-[16px] font-semibold">
-            Profil penyalur
+            {t("account.distributorTitle")}
           </h2>
           <p className="mt-1 text-[13px] text-muted">
-            {LABEL_TEXT[me.distributor.label] ?? me.distributor.label} ·{" "}
-            {VERIFICATION_TEXT[me.distributor.verification_status] ?? me.distributor.verification_status}
+            {t(LABEL_KEY[me.distributor.label] ?? "event.labelVolunteer")} ·{" "}
+            {t(VERIFICATION_KEY[me.distributor.verification_status] ?? "account.verificationUnverified")}
           </p>
 
           {me.distributor.bio ? (
@@ -81,13 +84,13 @@ function AccountBody() {
           ) : null}
 
           {isVerifiedDistributor ? (
-            <p className="mt-3 text-[13px] text-ok">
-              Kamu bisa mengajukan diri sebagai penanggung jawab penyaluran.
-            </p>
+            <p className="mt-3 text-[13px] text-ok">{t("account.distributorVerified")}</p>
           ) : (
             <p className="mt-3 text-[13px] text-muted">
-              Pengajuan penanggung jawab terbuka setelah verifikasi disetujui admin.
-              {me.distributor.rejection_reason ? ` Catatan admin: ${me.distributor.rejection_reason}` : ""}
+              {t("account.distributorPending")}
+              {me.distributor.rejection_reason
+                ? ` ${t("account.distributorRejection", { reason: me.distributor.rejection_reason })}`
+                : ""}
             </p>
           )}
         </section>
@@ -95,7 +98,7 @@ function AccountBody() {
 
       <p className="text-[13px] text-muted">
         <Link to="/" className="underline hover:text-ink">
-          Kembali ke beranda
+          {t("common.backToHome")}
         </Link>
       </p>
     </div>
