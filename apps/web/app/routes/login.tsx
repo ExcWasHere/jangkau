@@ -13,6 +13,20 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  async function signInWithGoogle() {
+    setError(null);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/` },
+      });
+      if (oauthError) throw oauthError;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Gagal masuk dengan Google");
+    }
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -38,7 +52,7 @@ export default function Login() {
         </Link>
         <h1 className="mt-6 text-2xl font-bold">Masuk</h1>
         <p className="mt-1 text-sm text-muted">
-          Pelapor, organisasi, dan admin memakai pintu yang sama.
+          Warga dan penyalur bantuan memakai pintu yang sama.
         </p>
       </div>
 
@@ -88,6 +102,21 @@ export default function Login() {
           {busy || !sessionReady ? "Memproses…" : "Masuk"}
         </button>
       </form>
+
+      <div className="flex items-center gap-3 text-[12px] text-muted">
+        <span className="h-px flex-1 bg-line" />
+        atau
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <button
+        type="button"
+        disabled={busy || !isSupabaseConfigured}
+        onClick={() => void signInWithGoogle()}
+        className="rounded-lg border border-line px-4 py-2.5 text-sm font-semibold hover:border-brand-line disabled:opacity-50"
+      >
+        Masuk dengan Google
+      </button>
 
       <p className="text-sm text-muted">
         Belum punya akun?{" "}

@@ -76,7 +76,7 @@ apps/
   web/
     app/
       routes/             modul rute: tipis, hanya menyusun fitur
-      features/           per-domain: auth, reports, posts, campaigns, organizations
+      features/           per-domain: auth, feed, marketing
       shared/             ui primitives, api client, lib, layout
     assets/               sumber aset mentah (tidak disajikan)
     public/               aset yang disajikan (pattern.svg hasil generate)
@@ -84,8 +84,8 @@ apps/
   api/
     src/app.ts            aplikasi Hono (komposisi)
     src/index.ts          entry Worker
-    src/modules/          per-domain: me, posts, reports, organizations, campaigns, stock, uploads
-    src/shared/           errors, supabase, ai, r2, geo, middleware
+    src/modules/          per-domain: events, posts, uploads, me
+    src/shared/           errors, supabase, ai, r2, geo, cursor, middleware
 packages/
   shared/                 zod schema + enum + label (kontrak web & api)
   db/                     migrasi SQL, seed, tipe hasil generate
@@ -223,47 +223,48 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 
 ## Halaman
 
-| Rute | Akses |
-|---|---|
-| `/` | publik |
-| `/pos/:postId` | publik (SSR) |
-| `/laporan/:reportId` | publik untuk laporan tervalidasi |
-| `/masuk`, `/daftar` | publik |
-| `/lapor`, `/laporan`, `/konfirmasi-rab` | pelapor |
-| `/laporan-masuk`, `/stok`, `/organisasi` | organisasi terverifikasi |
-| `/kampanye/:id` | pelapor terkait, organisasi, admin |
-| `/admin/organisasi` | admin |
+| Rute | Akses | Isi |
+|---|---|---|
+| `/` | publik | Beranda: rak Leaderboard, Pantau, Terbaru |
+| `/leaderboard`, `/pantau` | publik | Daftar penuh per section |
+| `/bencana/:id` | publik | Detail berita, pengunggah, penanggung jawab, posko |
+| `/unggah` | login | Unggah laporan + foto + GPS |
+| `/saya` | login | Profil, lencana, status verifikasi penyalur |
+| `/masuk`, `/daftar` | publik | Email/password + Google; pilih tipe akun |
 
 ## Alur inti
 
 ```
-Lapor (offline-first) → Klasifikasi & merge AI → Geofence + upvote
-→ Organisasi ambil alih → RAB → Konfirmasi pelapor → Donasi (Midtrans)
-→ Pencairan bertahap (bukti + konfirmasi barang) → Stok pos ter-update
+Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibuat
+→ dukungan publik (ambang 50) → Leaderboard → penyalur terverifikasi mengajukan
+→ admin setujui → Pantau → survei posko → donasi per penanggung jawab
+→ pencairan bertahap + bukti belanja → konfirmasi pelapor
 ```
 
 ## Status implementasi
 
 | Bagian | Status |
 |---|---|
-| Landing, auth (Supabase), halaman lapor + antrean offline | jalan |
-| Detail pos (`/pos/:id`) + detail laporan (`/laporan/:id`) dengan upvote | jalan |
-| Organisasi: pendaftaran, status verifikasi, verifikasi admin + audit log | jalan |
-| RAB builder, konfirmasi pelapor, donasi simulasi, pencairan bertahap | jalan |
-| Stok per pos + riwayat pergerakan | jalan |
-| Kandidat duplikat (trigram + verdict model) dan penggabungan | jalan |
-| API: health, posts, reports (idempoten `clientUuid`), votes, classify, merge-candidates | jalan |
-| Skema database (PostGIS geofence, trigger upvote/tranche, RLS) | sudah diterapkan + seed demo |
-| Upload R2 | **jalan**: presigned PUT/GET, foto laporan tampil di daftar |
-| Midtrans sungguhan | belum — donasi berjalan dalam mode simulasi berlabel |
-| Peta interaktif | belum — detail pos memakai diagram radius SVG |
-| Notifikasi email | **terblokir**: Cloudflare Email butuh domain/zona yang belum ada |
+| Skema database baru (23 tabel, 6 view, 50 policy, 22 trigger) | jalan, terpasang di Supabase |
+| Seed demo idempoten (5 event, 131 dukungan, 3 PIC, 8 donasi) | jalan |
+| API: health, feed keyset, detail event, like/unlike, lapor konten | jalan |
+| API: unggah post + klasifikasi AI + merge otomatis/tinjauan | jalan |
+| API: presign R2 (bucket publik + privat terpisah) | jalan |
+| Web: beranda 3 rak, daftar section, detail event, unggah, profil | jalan |
+| Auth: email/password + Google, pilih tipe akun (Warga/Penyalur) | jalan |
+| Tema gelap/terang + token desain dari `design.md` | jalan |
+| Verifikasi penyalur, pengajuan PIC, posko, donasi, pencairan | **belum** — Fase 4–6 |
+| Midtrans | **belum** — akan memakai adapter mock di Fase 5 |
+| Antrean offline IndexedDB | **belum** — Fase 8 |
+| i18n ID/EN | **belum** — string masih Indonesia langsung |
 
 ## Keterbatasan yang disengaja
 
 - Pencairan dana **disimulasikan** — tidak ada transfer uang nyata.
-- Midtrans memakai sandbox; transaksi demo diberi label.
-- Data demo adalah data sintetis.
+- Data demo adalah data sintetis. Foto demo memakai gambar berlisensi bebas dari
+  Wikimedia Commons; judul event diselaraskan dengan foto yang tersedia.
+- AI hanya mengusulkan. Kalau provider AI tidak bisa dipakai, post tetap terbit
+  dengan `needs_review = true` dan penggabungan memakai jarak sebagai fallback.
 - Verifikasi organisasi masih manual oleh admin.
 
 ---

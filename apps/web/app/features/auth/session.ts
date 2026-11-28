@@ -58,14 +58,14 @@ export function useSession() {
 
 /**
  * Halaman auth (`/masuk`, `/daftar`): pengguna yang sudah punya sesi
- * langsung diarahkan ke dasbor, supaya tidak ada dua kondisi login.
+ * langsung diarahkan ke beranda, supaya tidak ada dua kondisi login.
  */
 export function useRedirectIfAuthenticated() {
   const navigate = useNavigate();
   const { session, ready } = useAuthState();
 
   useEffect(() => {
-    if (ready && session) navigate("/laporan", { replace: true });
+    if (ready && session) navigate("/", { replace: true });
   }, [navigate, ready, session]);
 
   return { ready };

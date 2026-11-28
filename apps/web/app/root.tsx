@@ -26,11 +26,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#0a0a0b" />
         <Meta />
         <Links />
       </head>
       <body className="min-h-dvh bg-canvas text-ink antialiased">
+        {/*
+          Tema dipasang sebelum paint supaya tidak ada kedip terang→gelap.
+          Pilihan pengguna di localStorage menang atas default gelap.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("jangkau-theme")||"dark";document.documentElement.dataset.theme=t==="light"?"light":"dark";}catch(e){document.documentElement.dataset.theme="dark";}`,
+          }}
+        />
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -56,7 +65,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 px-6">
-      <p className="text-sm font-semibold tracking-wide text-brand uppercase">Jangkau</p>
+      <p className="text-sm font-semibold tracking-wide text-brand-text uppercase">Jangkau</p>
       <h1 className="text-3xl font-bold">{title}</h1>
       <p className="text-muted">{detail}</p>
       <a
