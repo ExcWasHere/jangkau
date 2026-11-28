@@ -1,7 +1,8 @@
 /**
  * Menjalankan berkas SQL ke database Supabase.
  *
- *   bun run scripts/apply.ts migrations/0002_community_feed.sql
+ *   bun run scripts/apply.ts migrations/0002_community_feed.sql \
+ *     migrations/0003_offline_and_merge_review.sql migrations/0004_location_source.sql
  *   bun run scripts/apply.ts seeds/demo.sql
  *
  * Kenapa tidak memakai `psql` atau `supabase db push`:
@@ -16,9 +17,9 @@ import { SQL } from "bun";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 
-const file = process.argv[2];
-if (!file) {
-  console.error("Pemakaian: bun run scripts/apply.ts <berkas.sql>");
+const files = process.argv.slice(2);
+if (files.length === 0) {
+  console.error("Pemakaian: bun run scripts/apply.ts <berkas.sql> [berkas.sql…]");
   process.exit(1);
 }
 
@@ -44,28 +45,39 @@ function buildUrl(): string | null {
   return `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:5432/postgres?sslmode=require`;
 }
 
-const raw = await readFile(file, "utf8");
-
-// Berkas boleh membawa `begin;`/`commit;` sendiri; transaksi dikelola di sini
-// supaya kegagalan di tengah berkas tidak meninggalkan skema setengah jadi.
-const body = raw
-  .replace(/^\s*begin\s*;\s*$/im, "")
-  .replace(/^\s*commit\s*;\s*$/im, "")
-  .trim();
-
 const sql = new SQL({ url, max: 1, connection_timeout: 30 });
 
-const started = performance.now();
-try {
-  await sql.begin(async (tx) => {
-    await tx.unsafe(body);
-  });
-  const ms = Math.round(performance.now() - started);
-  console.log(`OK ${basename(file)} (${ms} ms)`);
-} catch (error) {
-  console.error(`GAGAL ${basename(file)}`);
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-} finally {
-  await sql.close();
+/**
+ * Tiap berkas mendapat transaksinya sendiri. Migrasi berikutnya bergantung pada
+ * hasil migrasi sebelumnya, jadi kegagalan di satu berkas menghentikan sisanya:
+ * melanjutkan hanya akan menumpuk error di atas skema setengah jadi.
+ */
+let failed = false;
+for (const file of files) {
+  const raw = await readFile(file, "utf8");
+
+  // Berkas boleh membawa `begin;`/`commit;` sendiri; transaksi dikelola di sini
+  // supaya kegagalan di tengah berkas tidak meninggalkan skema setengah jadi.
+  const body = raw
+    .replace(/^\s*begin\s*;\s*$/im, "")
+    .replace(/^\s*commit\s*;\s*$/im, "")
+    .trim();
+
+  const started = performance.now();
+  try {
+    await sql.begin(async (tx) => {
+      await tx.unsafe(body);
+    });
+    const ms = Math.round(performance.now() - started);
+    console.log(`OK ${basename(file)} (${ms} ms)`);
+  } catch (error) {
+    console.error(`GAGAL ${basename(file)}`);
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+    failed = true;
+    break;
+  }
 }
+
+await sql.close();
+if (failed) process.exit(1);

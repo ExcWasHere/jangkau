@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "push": "bun run scripts/apply.ts migrations/0002_community_feed.sql",
+    "push": "bun run scripts/apply.ts migrations/0003_offline_and_merge_review.sql migrations/0004_location_source.sql",
+    "reset": "bun run scripts/apply.ts migrations/0002_community_feed.sql migrations/0003_offline_and_merge_review.sql migrations/0004_location_source.sql",
     "seed": "bun run scripts/apply.ts seeds/demo.sql",
     "types": "bun run scripts/types.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json"
