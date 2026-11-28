@@ -167,6 +167,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <OfflineIndicator
           pending={offline.pending}
+          failed={offline.failed}
           syncing={offline.syncing}
           online={offline.online}
           onSync={() => void offline.syncNow()}

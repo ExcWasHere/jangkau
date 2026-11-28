@@ -1,4 +1,4 @@
-import { apiFetch } from "~/shared/api/client";
+import { ApiError, apiFetch } from "~/shared/api/client";
 
 /** Hasil pengiriman satu unggahan, baik langsung maupun dari antrean. */
 export type SubmitResult = {
@@ -12,6 +12,7 @@ export type SubmitInput = {
   body: string;
   placeLabel?: string;
   capturedAt: string;
+  locationSource: "device" | "manual";
   location: { lat: number; lng: number; accuracyM?: number };
   photos: Array<{ blob: Blob; mimeType: string; sizeBytes: number }>;
 };
@@ -58,6 +59,10 @@ export async function submitPost(input: SubmitInput, token: string): Promise<Sub
       body: input.body,
       placeLabel: input.placeLabel,
       capturedAt: input.capturedAt,
+      // Wajib diteruskan: tanpa ini server menganggap lokasi selalu dari
+      // perangkat, sehingga titik manual ikut divalidasi radius dan
+      // tidak pernah ditandai untuk tinjauan.
+      locationSource: input.locationSource,
       location: input.location,
       media,
     }),
@@ -71,6 +76,18 @@ export async function submitPost(input: SubmitInput, token: string): Promise<Sub
  * `ApiError` dengan status. Hanya kegagalan jaringan yang layak diantrekan —
  * menolak unggahan yang salah isi berulang kali tidak akan pernah berhasil.
  */
+/**
+ * `409 duplicate` dari server berarti baris dengan `clientUuid` ini sudah ada.
+ *
+ * Untuk antrean offline, itu sama saja dengan berhasil terkirim: tidak ada
+ * yang perlu diulang, dan laporan tidak boleh ditandai "perlu diperbaiki".
+ * Kasus ini muncul saat dua sinkronisasi berjalan bersamaan — mis. pengguna
+ * memuat ulang halaman sementara permintaan sebelumnya masih diproses AI.
+ */
+export function isDuplicateRejection(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && error.code === "duplicate";
+}
+
 export function isNetworkFailure(error: unknown): boolean {
   if (error instanceof TypeError) return true;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;

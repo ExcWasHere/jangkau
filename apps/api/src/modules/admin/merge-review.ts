@@ -31,6 +31,9 @@ type ReviewRow = {
   ai_confidence: number | null;
   ai_similarity: number | null;
   ai_model: string | null;
+  location_source: "device" | "manual";
+  review_reasons: string[];
+  accuracy_m: number | null;
   created_at: string;
   author_id: string;
   disaster_events: {
@@ -52,7 +55,7 @@ mergeReviewRoutes.get("/", async (c) => {
   const { data, error } = await admin
     .from("posts")
     .select(
-      "id, event_id, body, place_label, ai_category, ai_confidence, ai_similarity, ai_model, created_at, author_id, disaster_events(id, title, disaster_type, regency, province, post_count, like_count), profiles(display_name)",
+      "id, event_id, body, place_label, ai_category, ai_confidence, ai_similarity, ai_model, location_source, review_reasons, accuracy_m, created_at, author_id, disaster_events(id, title, disaster_type, regency, province, post_count, like_count), profiles(display_name)",
     )
     .eq("needs_review", true)
     .eq("status", "published")
@@ -87,6 +90,9 @@ mergeReviewRoutes.get("/", async (c) => {
       placeLabel: row.place_label,
       authorName: row.profiles?.display_name ?? "—",
       createdAt: row.created_at,
+      locationSource: row.location_source,
+      reviewReasons: row.review_reasons ?? [],
+      accuracyM: row.accuracy_m === null ? null : Number(row.accuracy_m),
       ai: {
         category: row.ai_category,
         confidence: row.ai_confidence,
@@ -139,6 +145,12 @@ mergeReviewRoutes.post("/:postId/decision", async (c) => {
   if (body.decision === "accept") {
     const { error: rpcError } = await admin.rpc("fn_accept_merge", { p_post_id: postId });
     if (rpcError) raiseDbError(rpcError);
+
+    const { error: clearError } = await admin.rpc("fn_clear_review_reasons", {
+      p_post_id: postId,
+    });
+    if (clearError) raiseDbError(clearError);
+
     return c.json({ ok: true, decision: "accept" });
   }
 

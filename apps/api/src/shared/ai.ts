@@ -15,7 +15,36 @@ import type { Bindings } from "../env.js";
  * `needs_review = true`).
  */
 
-const REQUEST_TIMEOUT_MS = 12_000;
+/**
+ * Batas waktu satu panggilan AI.
+ *
+ * Model yang dipakai (`alicn/deepseek-v4.1-flash`) adalah **reasoning model**:
+ * ia menulis rantai penalaran lebih dulu, baru jawaban. Panggilan yang
+ * seharusnya selesai dalam 2 detik bisa memakan 17 detik, jadi batas 12 detik
+ * memotong jawaban yang sebenarnya sedang berjalan.
+ */
+const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Batas token keluaran.
+ *
+ * Reasoning model menghabiskan token untuk penalaran SEBELUM menulis
+ * `content`. Dengan 400 token, seluruh jatah habis di penalaran dan `content`
+ * kembali kosong — terlihat seperti "AI tidak tersedia" padahal modelnya sehat.
+ */
+const MAX_OUTPUT_TOKENS = 1_500;
+
+/**
+ * Jeda sebelum percobaan ulang.
+ *
+ * `Bun.sleep` tidak tersedia di Cloudflare Workers, dan `setTimeout` tersedia
+ * di kedua runtime — jadi dipakai itu, dibungkus promise.
+ */
+function sleep(ms: number): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  setTimeout(resolve, ms);
+  return promise;
+}
 
 export const postClassificationSchema = z.object({
   category: z.enum(NEED_CATEGORIES),
@@ -42,36 +71,58 @@ type ChatResponse = {
   error?: { message?: string };
 };
 
+/**
+ * Satu panggilan chat-completions, dengan satu percobaan ulang.
+ *
+ * Provider kadang menolak permintaan yang datang bersamaan (dua panggilan
+ * dalam satu unggahan: klasifikasi dan penilaian duplikat) atau mengembalikan
+ * `content` kosong saat jatah token habis di penalaran. Percobaan ulang sekali
+ * jauh lebih murah daripada kehilangan klasifikasi pada demo.
+ */
 async function chat(
   env: Bindings,
   messages: Array<{ role: string; content: string }>,
 ): Promise<string | null> {
   if (!env.AI_BASE_URL || !env.AI_API_KEY || !env.AI_MODEL) return null;
 
-  try {
-    const response = await fetch(`${env.AI_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${env.AI_API_KEY}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: env.AI_MODEL,
-        messages,
-        temperature: 0,
-        max_tokens: 400,
-      }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
+  const body = JSON.stringify({
+    model: env.AI_MODEL,
+    messages,
+    temperature: 0,
+    max_tokens: MAX_OUTPUT_TOKENS,
+  });
 
-    if (!response.ok) return null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(`${env.AI_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${env.AI_API_KEY}`,
+          "content-type": "application/json",
+        },
+        body,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
 
-    const payload = (await response.json()) as ChatResponse;
-    const content = payload.choices?.[0]?.message?.content;
-    return content?.trim() || null;
-  } catch {
-    return null;
+      if (!response.ok) {
+        // 4xx selain 429 tidak akan berubah dengan diulang.
+        if (response.status < 500 && response.status !== 429) return null;
+        await sleep(600 * (attempt + 1));
+        continue;
+      }
+
+      const payload = (await response.json()) as ChatResponse;
+      const content = payload.choices?.[0]?.message?.content?.trim();
+      if (content) return content;
+
+      // `content` kosong: reasoning menghabiskan jatah. Ulangi sekali.
+      await sleep(400);
+    } catch {
+      await sleep(600 * (attempt + 1));
+    }
   }
+
+  return null;
 }
 
 /** Model kadang membungkus JSON dengan ```json; ambil objek pertama. */

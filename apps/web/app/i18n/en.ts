@@ -118,6 +118,7 @@ export const en = {
 
   upload: {
     title: "Upload a disaster report",
+    locationTitle: "Report location",
     intro:
       "Location comes from your device and is required. Reports about the same disaster merge into one story.",
     bodyLabel: "What happened?",
@@ -539,6 +540,8 @@ export const en = {
     indicatorSyncing: "Sending {count} reports…",
     offline: "No signal",
     syncNow: "Send now",
+    needsFix: "{count} reports need fixing",
+    fixNow: "Fix",
     synced: "{count} reports sent",
     rejected: "{count} reports rejected by the server, check the content",
     queued: "Report saved on this device and will be sent automatically when signal returns.",
@@ -561,6 +564,45 @@ export const en = {
     splitDone: "Post split into a new report",
     titlePrompt: "New report title (leave empty to use the post text)",
     photoAlt: "Photo from {name}",
+  },
+
+  gps: {
+    locating: "Getting your location…",
+    located: "Location found · accuracy ±{accuracy} m",
+    poorAccuracy: "Accuracy is still coarse (±{accuracy} m). Try an open area.",
+    retry: "Get location again",
+    useManual: "Pick a location on the map",
+    manualTitle: "Pick the report location",
+    manualIntro:
+      "Drag the pin to the disaster point. A self-picked location is flagged and goes to admin review, so prefer GPS when possible.",
+    manualConfirm: "Use this location",
+    manualCancel: "Cancel",
+    manualBadge: "Location picked manually · awaiting review",
+    deviceBadge: "Location from device",
+    unsupported: "This device does not support location. Pick a location on the map.",
+    denied:
+      "Location permission is blocked. Open the site settings in your browser, allow location, then reload. Meanwhile you can pick a location on the map.",
+    timeout: "Location not received yet. Try an open area, or pick a location on the map.",
+    unavailable: "GPS gave no fix. Make sure device location is on, or pick a location on the map.",
+    insecure: "Location is only available over HTTPS. Pick a location on the map.",
+    tooCoarse: "Accuracy is too coarse (±{accuracy} m) to confirm you are on site. Pick a location on the map.",
+    required: "Location not set yet.",
+  },
+
+  queue: {
+    title: "Reports on this device",
+    intro: "Reports not sent yet. Rejected ones need fixing first.",
+    empty: "No reports held back.",
+    failedBadge: "Needs fixing",
+    pendingBadge: "Waiting for signal",
+    reason: "Reason",
+    edit: "Fix & resend",
+    save: "Save & retry",
+    discard: "Discard report",
+    discardConfirm: "Discard this report? Its text and photos will be lost.",
+    retried: "Report returned to the queue",
+    discarded: "Report discarded",
+    bodyLabel: "Report text",
   },
 
   guards: {

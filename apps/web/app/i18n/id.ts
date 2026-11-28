@@ -118,6 +118,7 @@ export const id = {
 
   upload: {
     title: "Unggah laporan bencana",
+    locationTitle: "Lokasi laporan",
     intro:
       "Lokasi diambil dari perangkat dan wajib. Laporan yang membicarakan bencana yang sama akan digabung jadi satu berita.",
     bodyLabel: "Apa yang terjadi?",
@@ -541,6 +542,8 @@ export const id = {
     indicatorSyncing: "Mengirim {count} laporan…",
     offline: "Tidak ada sinyal",
     syncNow: "Kirim sekarang",
+    needsFix: "{count} laporan perlu diperbaiki",
+    fixNow: "Perbaiki",
     synced: "{count} laporan terkirim",
     rejected: "{count} laporan ditolak server, periksa isinya",
     queued: "Laporan disimpan di perangkat dan akan terkirim otomatis saat sinyal kembali.",
@@ -563,6 +566,45 @@ export const id = {
     splitDone: "Unggahan dipisahkan menjadi berita baru",
     titlePrompt: "Judul berita baru (kosongkan untuk memakai teks unggahan)",
     photoAlt: "Foto unggahan dari {name}",
+  },
+
+  gps: {
+    locating: "Mengambil lokasi…",
+    located: "Lokasi didapat · akurasi ±{accuracy} m",
+    poorAccuracy: "Akurasi masih kasar (±{accuracy} m). Coba di tempat terbuka.",
+    retry: "Ambil ulang lokasi",
+    useManual: "Pilih lokasi di peta",
+    manualTitle: "Pilih lokasi laporan",
+    manualIntro:
+      "Geser pin ke titik bencana. Lokasi yang dipilih sendiri ditandai dan masuk tinjauan admin, jadi sebaiknya tetap pakai GPS bila memungkinkan.",
+    manualConfirm: "Pakai lokasi ini",
+    manualCancel: "Batal",
+    manualBadge: "Lokasi dipilih manual · menunggu tinjauan",
+    deviceBadge: "Lokasi dari perangkat",
+    unsupported: "Perangkat ini tidak mendukung lokasi. Pilih lokasi di peta.",
+    denied:
+      "Izin lokasi diblokir. Buka pengaturan situs di browser, izinkan lokasi, lalu muat ulang halaman. Sementara itu kamu bisa memilih lokasi di peta.",
+    timeout: "Lokasi belum didapat. Coba di tempat terbuka, atau pilih lokasi di peta.",
+    unavailable: "GPS tidak memberi titik. Pastikan lokasi perangkat aktif, atau pilih lokasi di peta.",
+    insecure: "Lokasi hanya bisa diambil lewat HTTPS. Pilih lokasi di peta.",
+    tooCoarse: "Akurasi terlalu kasar (±{accuracy} m) untuk memastikan kamu di lokasi. Pilih lokasi di peta.",
+    required: "Lokasi belum ditentukan.",
+  },
+
+  queue: {
+    title: "Laporan di perangkat ini",
+    intro: "Laporan yang belum terkirim. Yang ditolak perlu diperbaiki dulu.",
+    empty: "Tidak ada laporan tertahan.",
+    failedBadge: "Perlu diperbaiki",
+    pendingBadge: "Menunggu sinyal",
+    reason: "Alasan",
+    edit: "Perbaiki & kirim ulang",
+    save: "Simpan & coba lagi",
+    discard: "Buang laporan",
+    discardConfirm: "Buang laporan ini? Teks dan fotonya akan hilang.",
+    retried: "Laporan dikembalikan ke antrean",
+    discarded: "Laporan dibuang",
+    bodyLabel: "Isi laporan",
   },
 
   guards: {

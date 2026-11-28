@@ -106,6 +106,9 @@ postRoutes.post("/", requireAuth, async (c) => {
   ]);
   const shouldAttach = candidate !== null && candidate.confidence >= MERGE_REVIEW_CONFIDENCE;
 
+  // Lokasi manual tidak membuktikan pelapor berada di lokasi, jadi radius tidak
+  // dipakai sebagai penyaring: event dicari di sekitar titik yang dipilih
+  // pengguna, dan unggahannya selalu masuk tinjauan admin.
   const eventId = shouldAttach
     ? candidate.eventId
     : await createEvent(c.env, {
@@ -117,7 +120,25 @@ postRoutes.post("/", requireAuth, async (c) => {
         createdBy: user.id,
       });
 
-  const needsReview = !classification || (shouldAttach && candidate.confidence < MERGE_AUTO_CONFIDENCE);
+  /**
+   * Alasan tinjauan dikumpulkan, bukan disimpulkan dari satu boolean.
+   * Alasannya bisa bertumpuk, dan admin perlu tahu semuanya untuk memutuskan.
+   */
+  const reviewReasons: string[] = [];
+  if (!classification) reviewReasons.push("ai_unavailable");
+  if (shouldAttach && candidate.confidence < MERGE_AUTO_CONFIDENCE) {
+    reviewReasons.push("merge_low_confidence");
+  }
+  if (input.locationSource === "manual") reviewReasons.push("manual_location");
+  if (
+    input.locationSource === "device" &&
+    typeof input.location.accuracyM === "number" &&
+    input.location.accuracyM > 1000
+  ) {
+    reviewReasons.push("poor_accuracy");
+  }
+
+  const needsReview = reviewReasons.length > 0;
 
   const { data: post, error: postError } = await admin
     .from("posts")
@@ -127,7 +148,9 @@ postRoutes.post("/", requireAuth, async (c) => {
       author_id: user.id,
       body: input.body,
       location: toPoint(input.location.lat, input.location.lng),
-      accuracy_m: input.location.accuracyM ?? null,
+      accuracy_m: input.locationSource === "device" ? (input.location.accuracyM ?? null) : null,
+      location_source: input.locationSource,
+      review_reasons: reviewReasons,
       place_label: input.placeLabel ?? null,
       captured_at: input.capturedAt,
       is_primary: !shouldAttach,
@@ -174,6 +197,7 @@ postRoutes.post("/", requireAuth, async (c) => {
       merged: shouldAttach,
       similarity: candidate?.confidence ?? null,
       needsReview,
+      reviewReasons,
       classification,
     },
     201,
