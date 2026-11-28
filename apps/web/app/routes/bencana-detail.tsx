@@ -5,6 +5,7 @@ import type { Route } from "./+types/bencana-detail";
 import type { EventDetail } from "~/features/feed/api";
 import { formatRupiah, relativeTime } from "~/features/feed/api";
 import { useAuthState } from "~/features/auth/session";
+import { ApplyPanel, PoskoEditor } from "~/features/event/apply-panel";
 import { translatorFromMatches, useT } from "~/i18n";
 import { AppShell } from "~/shared/layout/app-shell";
 import { apiFetch } from "~/shared/api/client";
@@ -37,13 +38,22 @@ const LABEL_KEY = {
 } as const;
 
 export default function EventDetailPage() {
-  const { detail } = useLoaderData<typeof loader>();
+  const loaded = useLoaderData<typeof loader>();
   const { t, locale } = useT();
-  const { token } = useAuthState();
+  const { token, ready } = useAuthState();
   const toast = useToast();
 
+  // Detail dimuat ulang setelah aksi yang mengubah data (ajukan PIC, buat
+  // posko), jadi disimpan di state — bukan hanya dari loader.
+  const [detail, setDetail] = useState<EventDetail>(loaded.detail);
   const { event } = detail;
   const [like, setLike] = useState({ count: event.likeCount, mine: detail.likedByMe });
+
+  async function refresh() {
+    const fresh = await apiFetch<EventDetail>(`/events/${event.id}`, { token });
+    setDetail(fresh);
+    setLike({ count: fresh.event.likeCount, mine: fresh.likedByMe });
+  }
 
   const region =
     [event.region.village, event.region.district, event.region.regency, event.region.province]
@@ -54,7 +64,9 @@ export default function EventDetailPage() {
   // sekali di klien setelah hidrasi. Tanpa ini tombol selalu tampak "belum
   // didukung" walau pengguna sudah mendukung.
   useEffect(() => {
-    if (!token) return;
+    // Tunggu sesi selesai dibaca. Tanpa ini, permintaan pertama berjalan tanpa
+    // token dan hasilnya (viewer kosong) sempat menimpa data yang benar.
+    if (!ready || !token) return;
     let active = true;
 
     apiFetch<EventDetail>(`/events/${event.id}`, { token })
@@ -69,7 +81,7 @@ export default function EventDetailPage() {
     return () => {
       active = false;
     };
-  }, [event.id, token]);
+  }, [event.id, ready, token]);
 
   async function toggleLike() {
     if (!token) {
@@ -150,9 +162,12 @@ export default function EventDetailPage() {
         </section>
 
         <section aria-labelledby="penanggung-jawab">
-          <h2 id="penanggung-jawab" className="text-[18px] font-semibold">
-            {t("event.picTitle")}
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 id="penanggung-jawab" className="text-[18px] font-semibold">
+              {t("event.picTitle")}
+            </h2>
+            <ApplyPanel detail={detail} token={token} onChanged={() => void refresh()} />
+          </div>
 
           {detail.personInCharge.length === 0 ? (
             <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-6 text-[13px] text-muted">
@@ -203,9 +218,21 @@ export default function EventDetailPage() {
         </section>
 
         <section aria-labelledby="posko">
-          <h2 id="posko" className="text-[18px] font-semibold">
-            {t("event.poskoTitle")}
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 id="posko" className="text-[18px] font-semibold">
+              {t("event.poskoTitle")}
+            </h2>
+            <PoskoEditor
+              eventId={event.id}
+              canManage={
+                detail.viewer?.isAdmin === true ||
+                detail.personInCharge.some((pic) => pic.distributorId === detail.viewer?.profileId) ||
+                detail.event.uploaders.some((uploader) => uploader.id === detail.viewer?.profileId)
+              }
+              token={token}
+              onCreated={() => void refresh()}
+            />
+          </div>
 
           {detail.posko.length === 0 ? (
             <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-6 text-[13px] text-muted">

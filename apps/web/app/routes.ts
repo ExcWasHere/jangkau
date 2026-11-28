@@ -7,6 +7,8 @@ export default [
   { path: "bencana/:id", file: "routes/bencana-detail.tsx" },
   { path: "unggah", file: "routes/unggah.tsx" },
   { path: "saya", file: "routes/saya.tsx" },
+  { path: "dashboard", file: "routes/dashboard.tsx" },
+  { path: "admin", file: "routes/admin.tsx" },
   { path: "masuk", file: "routes/login.tsx" },
   { path: "daftar", file: "routes/register.tsx" },
 ] satisfies RouteConfig;

@@ -7,8 +7,12 @@ import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./env.js";
 import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
+import { adminRoutes } from "./modules/admin/routes.js";
+import { distributorRoutes } from "./modules/distributors/routes.js";
 import { eventRoutes } from "./modules/events/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
+import { picRoutes } from "./modules/pic/routes.js";
+import { poskoRoutes } from "./modules/posko/routes.js";
 import { postRoutes } from "./modules/posts/routes.js";
 import { uploadRoutes } from "./modules/uploads/routes.js";
 
@@ -57,9 +61,15 @@ api.get("/health", (c) =>
 api.use("*", requireSupabase);
 
 api.route("/events", eventRoutes);
+// Router kedua pada prefix yang sama: `GET /events/:id` di eventRoutes hanya
+// cocok untuk satu segmen, jadi rute dua segmen di picRoutes tidak bertabrakan.
+api.route("/events", picRoutes);
+api.route("/posko", poskoRoutes);
 api.route("/posts", postRoutes);
 api.route("/uploads", uploadRoutes);
+api.route("/distributors", distributorRoutes);
 api.route("/me", meRoutes);
+api.route("/admin", adminRoutes);
 
 app.route("/api/v1", api);
 

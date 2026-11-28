@@ -138,9 +138,11 @@ export const supportedLocales = LOCALES;
  * jadi locale dibaca dari data loader route `root`.
  */
 export function translatorFromMatches(
-  matches: ReadonlyArray<{ id: string; data?: unknown } | undefined>,
+  matches: ReadonlyArray<{ id: string; data?: unknown } | undefined> | undefined,
 ): Translator {
-  const root = matches.find((match) => match?.id === "root");
+  // `matches` bisa undefined saat `meta` dievaluasi di error boundary, jadi
+  // tidak boleh diasumsikan array.
+  const root = matches?.find((match) => match?.id === "root");
   const locale = (root?.data as { locale?: string } | undefined)?.locale;
   return createTranslator(isLocale(locale) ? locale : DEFAULT_LOCALE);
 }

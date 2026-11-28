@@ -17,9 +17,13 @@ begin;
 -- ============================================================ 1. pengguna tambahan
 -- 75 akun pengisi supaya ambang 50 dukungan bisa didemokan apa adanya,
 -- bukan dengan memalsukan like_count.
+-- Kolom token WAJIB diisi string kosong, bukan NULL. GoTrue membaca kolom ini
+-- saat login; NULL membuat setiap percobaan masuk gagal dengan
+-- "Database error querying schema", bukan pesan kredensial salah.
 insert into auth.users (
   id, instance_id, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role,
+  confirmation_token, recovery_token, email_change, email_change_token_new
 )
 select ('20000000-0000-4000-8000-' || lpad(g::text, 12, '0'))::uuid,
        '00000000-0000-0000-0000-000000000000',
@@ -28,9 +32,46 @@ select ('20000000-0000-4000-8000-' || lpad(g::text, 12, '0'))::uuid,
        now(),
        '{"provider":"email","providers":["email"]}'::jsonb,
        jsonb_build_object('full_name', 'Warga Demo ' || g),
-       now(), now(), 'authenticated', 'authenticated'
+       now(), now(), 'authenticated', 'authenticated',
+       '', '', '', ''
   from generate_series(1, 75) g
 on conflict (id) do nothing;
+
+-- Baris lama dari seed sebelumnya mungkin sudah ada dengan token NULL.
+update auth.users
+   set confirmation_token = coalesce(confirmation_token, ''),
+       recovery_token = coalesce(recovery_token, ''),
+       email_change = coalesce(email_change, ''),
+       email_change_token_new = coalesce(email_change_token_new, '')
+ where email like '%@jangkau.test';
+
+-- Akun penyalur yang menunggu verifikasi, supaya antrean admin berisi sesuatu
+-- yang bisa dikerjakan saat demo.
+insert into auth.users (
+  id, instance_id, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values (
+  '4f0da1a0-677b-42d7-a77b-baf8a9d56a6e', '00000000-0000-0000-0000-000000000000',
+  'demo.penyalurbaru@jangkau.test', crypt('Jangkau2026!', gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"full_name":"Sari Wulandari","account_type":"distributor"}'::jsonb,
+  now(), now(), 'authenticated', 'authenticated',
+  '', '', '', ''
+) on conflict (id) do nothing;
+
+insert into auth.users (
+  id, instance_id, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values (
+  '3f0da1a0-677b-42d7-a77b-baf8a9d56a6e', '00000000-0000-0000-0000-000000000000',
+  'demo.yayasanbaru@jangkau.test', crypt('Jangkau2026!', gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"full_name":"Yayasan Bina Desa","account_type":"distributor"}'::jsonb,
+  now(), now(), 'authenticated', 'authenticated',
+  '', '', '', ''
+) on conflict (id) do nothing;
 
 -- ============================================================ 2. peran khusus
 update profiles set is_admin = true where id = '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4';
@@ -45,6 +86,14 @@ update profiles
 
 insert into distributor_profiles (profile_id, label, display_name, bio, home_city, contact_email, contact_phone, social_url, follower_count, verification_status, verified_at, verified_by)
 values
+  ('4f0da1a0-677b-42d7-a77b-baf8a9d56a6e','volunteer','Sari Wulandari',
+   'Relawan pengurus posko di Malang, terverifikasi sejak 2025.',
+   'Malang','sari@jangkau.test','081200000004', null, null,
+   'verified', now(), '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4'),
+  ('3f0da1a0-677b-42d7-a77b-baf8a9d56a6e','organization','Yayasan Bina Desa',
+   'Yayasan yang bergerak di pemberdayaan desa. Mengajukan verifikasi untuk respons bencana.',
+   'Yogyakarta','halo@binadesa.test','081200000005','https://instagram.com/binadesa', 5200,
+   'pending', null, null),
   ('a9fa8043-2f56-41da-9e3c-c38d29a6b29d','organization','Yayasan Siaga Nusantara',
    'Yayasan kemanusiaan yang bergerak di respons bencana sejak 2014. Fokus pada logistik pangan dan air bersih.',
    'Malang','halo@siaganusantara.test','0341000001','https://instagram.com/siaganusantara', 18400,
@@ -56,8 +105,30 @@ values
   ('2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','creator','Rangga Prasetya',
    'Kreator konten kemanusiaan. Meliput langsung dari lokasi bencana.',
    'Bandung','rangga@jangkau.test','081200000003','https://instagram.com/ranggaprasetya', 96000,
-   'verified', now(), '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4')
+   'pending', null, null)
 on conflict (profile_id) do nothing;
+
+-- Status verifikasi diselaraskan eksplisit: `on conflict do nothing` pada insert
+-- di atas tidak memperbarui baris yang sudah ada, jadi database yang pernah
+-- di-seed akan mempertahankan status lama.
+update distributor_profiles as d set
+  label = v.label,
+  display_name = v.display_name,
+  verification_status = v.verification_status,
+  verified_at = v.verified_at
+from (values
+  ('a9fa8043-2f56-41da-9e3c-c38d29a6b29d'::uuid, 'organization'::distributor_label,
+   'Yayasan Siaga Nusantara', 'verified'::verification_status, now()),
+  ('5165d200-f27e-49c6-b740-23c7add9c7ba'::uuid, 'volunteer'::distributor_label,
+   'Budi Santoso', 'verified'::verification_status, now()),
+  ('2f0da1a0-677b-42d7-a77b-baf8a9d56a6e'::uuid, 'creator'::distributor_label,
+   'Rangga Prasetya', 'verified'::verification_status, now()),
+  ('4f0da1a0-677b-42d7-a77b-baf8a9d56a6e'::uuid, 'volunteer'::distributor_label,
+   'Sari Wulandari', 'verified'::verification_status, now()),
+  ('3f0da1a0-677b-42d7-a77b-baf8a9d56a6e'::uuid, 'organization'::distributor_label,
+   'Yayasan Bina Desa', 'pending'::verification_status, null::timestamptz)
+) as v(profile_id, label, display_name, verification_status, verified_at)
+where d.profile_id = v.profile_id;
 
 -- ============================================================ 3. event
 insert into disaster_events (id, title, disaster_type, summary, location, radius_m, village, district, regency, province, severity, status, cover_media_key, first_reported_at, last_activity_at, created_by)
@@ -241,6 +312,41 @@ values
    'Saya warga Malang dan sudah membantu evakuasi di dusun Krajan. Ingin menangani posko balai desa sampai pemulihan selesai.',
    now() - interval '5 hours', null, null, null)
 on conflict (event_id, distributor_id) do nothing;
+
+-- Status penugasan diselaraskan eksplisit. Tanpa ini, pengajuan yang sempat
+-- disetujui saat mencoba alur admin akan tetap `approved` selamanya, dan
+-- beranda kehilangan isi Leaderboard karena semua berita pindah ke Pantau.
+update pic_assignments as a set
+  status = v.status::assignment_status,
+  reviewed_by = v.reviewed_by,
+  reviewed_at = v.reviewed_at,
+  approved_at = v.approved_at
+from (values
+  ('d0000000-0000-4000-8000-000000000001'::uuid, 'approved', '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4'::uuid, now() - interval '4 days', now() - interval '4 days'),
+  ('d0000000-0000-4000-8000-000000000002'::uuid, 'approved', '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4'::uuid, now() - interval '3 days', now() - interval '3 days'),
+  ('d0000000-0000-4000-8000-000000000003'::uuid, 'approved', '5f576a43-940f-4c4d-b2f7-f61bc0c8b9c4'::uuid, now() - interval '3 days', now() - interval '3 days'),
+  ('d0000000-0000-4000-8000-000000000004'::uuid, 'applied', null::uuid, null::timestamptz, null::timestamptz)
+) as v(id, status, reviewed_by, reviewed_at, approved_at)
+where a.id = v.id;
+
+-- Penugasan percobaan (bukan bagian demo) dibuang, supaya event kembali ke
+-- Leaderboard dan beranda punya isi yang beragam. Penugasan yang sudah punya
+-- donasi atau pencairan TIDAK dihapus: uang tidak boleh hilang karena seed,
+-- dan foreign key `on delete restrict` akan menolaknya.
+delete from pic_assignments a
+ where a.id not in ('d0000000-0000-4000-8000-000000000001',
+                    'd0000000-0000-4000-8000-000000000002',
+                    'd0000000-0000-4000-8000-000000000003',
+                    'd0000000-0000-4000-8000-000000000004')
+   and not exists (select 1 from donations d where d.pic_assignment_id = a.id)
+   and not exists (select 1 from disbursements b where b.pic_assignment_id = a.id);
+
+-- Posko di luar daftar demo dibuang (mis. posko uji coba).
+delete from relief_posts
+ where id not in ('a0000000-0000-4000-8000-000000000001',
+                  'a0000000-0000-4000-8000-000000000002',
+                  'a0000000-0000-4000-8000-000000000003',
+                  'a0000000-0000-4000-8000-000000000004');
 
 -- ============================================================ 8. posko, kebutuhan, stok
 insert into relief_posts (id, event_id, name, address, location, radius_m, headcount, capacity, origin, status, surveyed_at, created_by)
@@ -457,12 +563,50 @@ values
    'Sepertinya ini bencana yang sama dengan laporan erupsi Merapi sebelumnya.','open')
 on conflict (id) do nothing;
 
+-- Dokumen verifikasi demo. Kreator sengaja dibuat `pending` dengan dokumen
+-- lengkap tetapi belum ditinjau, supaya antrean admin berisi sesuatu yang bisa
+-- dikerjakan saat demo. `r2_key` menunjuk berkas contoh di bucket privat.
 insert into verification_documents (id, profile_id, kind, r2_key, mime_type, size_bytes, note, review_status)
 values
-  ('50000000-0000-4000-8000-000000000001','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','follower_stats',
+  ('50000000-0000-4000-8000-000000000001','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','pic_identity',
+   'verification/demo/kreator-ktp.pdf','application/pdf', 180000,
+   'KTP atas nama Rangga Prasetya','approved'),
+  ('50000000-0000-4000-8000-000000000002','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','pic_selfie',
+   'verification/demo/kreator-selfie.pdf','application/pdf', 210000,
+   'Swafoto dengan KTP','approved'),
+  ('50000000-0000-4000-8000-000000000003','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','social_profile',
+   'verification/demo/kreator-social.pdf','application/pdf', 96000,
+   'Tautan akun Instagram dan TikTok','approved'),
+  ('50000000-0000-4000-8000-000000000004','2f0da1a0-677b-42d7-a77b-baf8a9d56a6e','follower_stats',
    'verification/demo/kreator-followers.pdf','application/pdf', 245000,
-   'Statistik pengikut Instagram per November 2026','pending')
-on conflict (r2_key) do nothing;
+   'Statistik pengikut Instagram per November 2026','approved'),
+  ('50000000-0000-4000-8000-000000000011','4f0da1a0-677b-42d7-a77b-baf8a9d56a6e','pic_identity',
+   'verification/demo/sari-ktp.pdf','application/pdf', 175000,
+   'KTP atas nama Sari Wulandari','approved'),
+  ('50000000-0000-4000-8000-000000000012','4f0da1a0-677b-42d7-a77b-baf8a9d56a6e','pic_selfie',
+   'verification/demo/sari-selfie.pdf','application/pdf', 205000,
+   'Swafoto dengan KTP','approved'),
+  ('50000000-0000-4000-8000-000000000013','4f0da1a0-677b-42d7-a77b-baf8a9d56a6e','field_proof',
+   'verification/demo/sari-kegiatan.pdf','application/pdf', 320000,
+   'Foto kegiatan posko Januari 2026','approved'),
+  ('50000000-0000-4000-8000-000000000021','3f0da1a0-677b-42d7-a77b-baf8a9d56a6e','legal_deed',
+   'verification/demo/binadesa-akta.pdf','application/pdf', 480000,
+   'Akta pendirian yayasan','pending'),
+  ('50000000-0000-4000-8000-000000000022','3f0da1a0-677b-42d7-a77b-baf8a9d56a6e','sk_kemenkumham',
+   'verification/demo/binadesa-sk.pdf','application/pdf', 390000,
+   'SK Kemenkumham','pending'),
+  ('50000000-0000-4000-8000-000000000023','3f0da1a0-677b-42d7-a77b-baf8a9d56a6e','pic_identity',
+   'verification/demo/binadesa-ktp.pdf','application/pdf', 165000,
+   'KTP penanggung jawab','pending'),
+  ('50000000-0000-4000-8000-000000000024','3f0da1a0-677b-42d7-a77b-baf8a9d56a6e','org_letter',
+   'verification/demo/binadesa-surat.pdf','application/pdf', 140000,
+   'Surat pernyataan penyaluran','pending')
+on conflict (id) do update set
+  r2_key = excluded.r2_key,
+  mime_type = excluded.mime_type,
+  size_bytes = excluded.size_bytes,
+  note = excluded.note,
+  review_status = excluded.review_status;
 
 commit;
 
