@@ -1,30 +1,33 @@
 import { Navigate } from "react-router";
 
-import type { AppRole } from "@jangkau/shared";
-
 import { useMe } from "~/features/auth/use-me";
 import { useAuthState } from "./session";
+import { useT } from "~/i18n";
+import { Skeleton } from "~/shared/ui/skeleton";
+
+function LoadingSession() {
+  const { t } = useT();
+  return (
+    <div className="flex flex-col gap-3" role="status" aria-live="polite">
+      <span className="sr-only">{t("common.loadingSession")}</span>
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-64" />
+      <Skeleton className="mt-2 h-24 w-full" />
+    </div>
+  );
+}
 
 /**
- * Penjaga halaman berdasarkan peran dari API.
- *
- * Aturannya sengaja tegas: organisasi hanya boleh masuk bila sudah
- * diverifikasi (`organizationId` terisi), karena status verifikasi adalah
- * dasar kewenangan di alur dana.
+ * Halaman yang butuh login. Selama sesi atau profil masih dimuat, tampilkan
+ * kerangka — bukan redirect, supaya pengguna yang sudah login tidak terlempar
+ * ke halaman masuk karena perlombaan waktu.
  */
-export function RequireRole({
-  allow,
-  children,
-}: {
-  allow: AppRole[];
-  children: React.ReactNode;
-}) {
+export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { t } = useT();
   const { ready } = useAuthState();
   const { me, loading, error } = useMe();
 
-  if (!ready || loading) {
-    return <p className="text-[13px] text-muted">Memuat sesi…</p>;
-  }
+  if (!ready || loading) return <LoadingSession />;
 
   if (error) {
     return (
@@ -35,28 +38,40 @@ export function RequireRole({
   }
 
   if (!me) return <Navigate to="/masuk" replace />;
-  if (!allow.includes(me.role)) return <Navigate to="/laporan" replace />;
 
   return <>{children}</>;
 }
 
-/** Halaman organisasi: wajib terverifikasi, bukan sekadar punya akun. */
-export function RequireVerifiedOrganization({ children }: { children: React.ReactNode }) {
+export function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { ready } = useAuthState();
   const { me, loading } = useMe();
 
-  if (!ready || loading) {
-    return <p className="text-[13px] text-muted">Memuat sesi…</p>;
-  }
+  if (!ready || loading) return <LoadingSession />;
+  if (!me) return <Navigate to="/masuk" replace />;
+  if (!me.isAdmin) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+}
+
+/**
+ * Pengajuan penanggung jawab hanya untuk penyalur yang sudah mendapat centang
+ * terverifikasi. Akun penyalur tanpa centang tetap boleh melapor dan berdonasi,
+ * jadi blokirnya dijelaskan, bukan sekadar dialihkan.
+ */
+export function RequireVerifiedDistributor({ children }: { children: React.ReactNode }) {
+  const { t } = useT();
+  const { ready } = useAuthState();
+  const { me, loading, isVerifiedDistributor } = useMe();
+
+  if (!ready || loading) return <LoadingSession />;
   if (!me) return <Navigate to="/masuk" replace />;
 
-  if (me.role !== "admin" && !me.organizationId) {
+  if (!isVerifiedDistributor) {
     return (
       <div className="rounded-xl border border-line bg-surface px-5 py-6">
-        <p className="text-[14px] font-semibold">Akun belum terhubung ke organisasi terverifikasi</p>
+        <p className="text-[14px] font-semibold">{t("guards.unverifiedTitle")}</p>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
-          Organisasi harus mendaftar dan menunggu verifikasi admin sebelum bisa mengambil laporan
-          atau membuka donasi.
+          {t("guards.unverifiedBody")}
         </p>
       </div>
     );

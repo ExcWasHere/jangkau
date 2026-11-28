@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "push": "supabase db push",
-    "reset": "supabase db reset",
-    "types": "supabase gen types typescript --linked --schema public > src/database.types.ts",
+    "push": "bun run scripts/apply.ts migrations/0003_offline_and_merge_review.sql migrations/0004_location_source.sql",
+    "reset": "bun run scripts/apply.ts migrations/0002_community_feed.sql migrations/0003_offline_and_merge_review.sql migrations/0004_location_source.sql",
+    "seed": "bun run scripts/apply.ts seeds/demo.sql",
+    "types": "bun run scripts/types.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "sharp": "^0.35.5",
     "typescript": "5.9.3"
   }
 }

@@ -7,13 +7,18 @@ import { secureHeaders } from "hono/secure-headers";
 import type { AppEnv } from "./env.js";
 import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
+import { mergeReviewRoutes } from "./modules/admin/merge-review.js";
+import { adminRoutes } from "./modules/admin/routes.js";
+import { disbursementRoutes } from "./modules/disbursements/routes.js";
+import { distributorRoutes } from "./modules/distributors/routes.js";
+import { donationRoutes } from "./modules/donations/routes.js";
+import { eventRoutes } from "./modules/events/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
+import { notificationRoutes } from "./modules/notifications/routes.js";
+import { picRoutes } from "./modules/pic/routes.js";
+import { poskoRoutes } from "./modules/posko/routes.js";
 import { postRoutes } from "./modules/posts/routes.js";
-import { reportRoutes } from "./modules/reports/routes.js";
 import { uploadRoutes } from "./modules/uploads/routes.js";
-import { adminOrganizationRoutes, organizationRoutes } from "./modules/organizations/routes.js";
-import { campaignRoutes, trancheRoutes } from "./modules/campaigns/routes.js";
-import { stockRoutes } from "./modules/stock/routes.js";
 
 const app = new Hono<AppEnv>();
 
@@ -59,15 +64,20 @@ api.get("/health", (c) =>
 // tanpa kredensial database.
 api.use("*", requireSupabase);
 
-api.route("/me", meRoutes);
+api.route("/events", eventRoutes);
+// Router kedua pada prefix yang sama: `GET /events/:id` di eventRoutes hanya
+// cocok untuk satu segmen, jadi rute dua segmen di picRoutes tidak bertabrakan.
+api.route("/events", picRoutes);
+api.route("/posko", poskoRoutes);
 api.route("/posts", postRoutes);
-api.route("/reports", reportRoutes);
 api.route("/uploads", uploadRoutes);
-api.route("/organizations", organizationRoutes);
-api.route("/admin/organizations", adminOrganizationRoutes);
-api.route("/campaigns", campaignRoutes);
-api.route("/tranches", trancheRoutes);
-api.route("/stock", stockRoutes);
+api.route("/distributors", distributorRoutes);
+api.route("/donations", donationRoutes);
+api.route("/disbursements", disbursementRoutes);
+api.route("/me", meRoutes);
+api.route("/notifications", notificationRoutes);
+api.route("/admin", adminRoutes);
+api.route("/admin/merge-review", mergeReviewRoutes);
 
 app.route("/api/v1", api);
 

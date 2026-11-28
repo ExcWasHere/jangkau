@@ -1,25 +1,44 @@
 import { useEffect, useState } from "react";
 
-import type { AppRole } from "@jangkau/shared";
+import type { AccountType, BadgeKind, DistributorLabel, VerificationStatus } from "@jangkau/shared";
 
-import { apiFetch, ApiError } from "~/shared/api/client";
-import { useSession } from "./session";
+import { ApiError, apiFetch } from "~/shared/api/client";
+import { useAuthState } from "./session";
 
 export type Me = {
   id: string;
   email: string | null;
-  role: AppRole;
-  fullName: string;
-  organizationId: string | null;
+  displayName: string;
+  accountType: AccountType;
+  isAdmin: boolean;
+  locale: "id" | "en";
+  badges: BadgeKind[];
+  distributor: {
+    label: DistributorLabel;
+    display_name: string;
+    bio: string | null;
+    home_city: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    social_url: string | null;
+    follower_count: number | null;
+    verification_status: VerificationStatus;
+    verified_at: string | null;
+    rejection_reason: string | null;
+  } | null;
 };
 
 /**
- * Profil + peran dari API. Dipakai untuk menyusun navigasi dan menjaga
- * akses halaman. `organizationId` hanya terisi bila organisasi sudah
- * diverifikasi admin — organisasi pending tidak mendapat akses apa pun.
+ * Profil dari API: tipe akun, status admin, lencana, dan profil penyalur.
+ * `isVerifiedDistributor` adalah satu-satunya syarat untuk mengajukan diri
+ * sebagai penanggung jawab, jadi dihitung sekali di sini.
+ *
+ * Sengaja TIDAK memakai `useSession`: hook ini dipakai juga oleh layout
+ * publik, dan `useSession` mengalihkan pengunjung tanpa sesi ke `/masuk`.
+ * Penjagaan halaman adalah tugas `RequireAuth` di guards.tsx.
  */
 export function useMe() {
-  const { token, ready } = useSession();
+  const { token, ready } = useAuthState();
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,5 +71,11 @@ export function useMe() {
     };
   }, [ready, token]);
 
-  return { me, error, loading, token };
+  return {
+    me,
+    error,
+    loading,
+    token,
+    isVerifiedDistributor: me?.distributor?.verification_status === "verified",
+  };
 }
