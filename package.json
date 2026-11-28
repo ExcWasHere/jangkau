@@ -15,7 +15,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "deploy": "bun run --filter @jangkau/web deploy",
     "db:push": "bun run --filter @jangkau/db push",
-    "db:reset": "bun run --filter @jangkau/db reset",
+    "db:seed": "bun run --filter @jangkau/db seed",
     "db:types": "bun run --filter @jangkau/db types"
   },
   "devDependencies": {
