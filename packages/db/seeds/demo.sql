@@ -488,6 +488,10 @@ values
   ('90000000-0000-4000-8000-000000000008','d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
    'a0000000-0000-4000-8000-000000000001',null,'Tamu Peduli',false,750000,'paid','JK-DEMO-0008','qris',now() - interval '1 day','tok-demo-0008','tamu2@jangkau.test'),
 
+  -- donasi anonim: nama tidak pernah tampil, nominal tetap publik
+  ('90000000-0000-4000-8000-000000000010','d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
+   'a0000000-0000-4000-8000-000000000001',null,null,true,1250000,'paid','JK-DEMO-0010','qris',now() - interval '20 hours','tok-demo-0010',null),
+
   -- donasi yang masih menunggu pembayaran: bahan demo state pending
   ('90000000-0000-4000-8000-000000000009','d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000002',
    'a0000000-0000-4000-8000-000000000001','b05ed853-3953-43cf-a671-a8997fe1361f','Maya Sari',false,500000,'pending','JK-DEMO-0009','qris',null,'tok-demo-0009',null)

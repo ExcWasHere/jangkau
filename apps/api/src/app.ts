@@ -9,6 +9,7 @@ import { AppError } from "./shared/errors.js";
 import { requireSupabase } from "./shared/middleware/require-supabase.js";
 import { adminRoutes } from "./modules/admin/routes.js";
 import { distributorRoutes } from "./modules/distributors/routes.js";
+import { donationRoutes } from "./modules/donations/routes.js";
 import { eventRoutes } from "./modules/events/routes.js";
 import { meRoutes } from "./modules/me/routes.js";
 import { picRoutes } from "./modules/pic/routes.js";
@@ -68,6 +69,7 @@ api.route("/posko", poskoRoutes);
 api.route("/posts", postRoutes);
 api.route("/uploads", uploadRoutes);
 api.route("/distributors", distributorRoutes);
+api.route("/donations", donationRoutes);
 api.route("/me", meRoutes);
 api.route("/admin", adminRoutes);
 

@@ -193,6 +193,24 @@ Data seed: 5 event (2 leaderboard, 2 pantau, 1 terbaru), 8 post, 131 dukungan,
 
 ---
 
+## Pembayaran
+
+`MIDTRANS_SERVER_KEY` kosong berarti **mode simulasi**: `POST /donations`
+menghasilkan payload QR bertanda `JANGKAU-MOCK|…`, UI menampilkan label
+"Simulasi", dan tombol "Tandai lunas (simulasi)" menandai donasi `paid`.
+Tidak ada uang yang berpindah.
+
+Isi `MIDTRANS_SERVER_KEY` (dan `MIDTRANS_CLIENT_KEY`) untuk beralih ke QRIS
+sandbox sungguhan. Tidak ada perubahan kode: `paymentProvider()` memilih
+implementasi Midtrans saat key tersedia, dan endpoint simulasi otomatis
+menolak (403) supaya uang nyata tidak bisa ditandai lunas dari sana.
+
+Webhook: `POST /api/v1/donations/webhook/mock` atau `/webhook/midtrans`.
+Keaslian dijaga tanda tangan (SHA-512 untuk Midtrans); notifikasi berulang
+idempoten.
+
+---
+
 ## Kredit foto demo
 
 Foto di `post_media` berasal dari Wikimedia Commons, dipotong ke 1600 px dan
@@ -230,7 +248,9 @@ Foto struk (`receipts/demo/*.webp`) dibuat sendiri oleh tim dan ditandai
 |---|---|---|
 | `/` | publik | Beranda: rak Leaderboard, Pantau, Terbaru |
 | `/leaderboard`, `/pantau` | publik | Daftar penuh per section |
-| `/bencana/:id` | publik | Detail berita, pengunggah, penanggung jawab, posko |
+| `/bencana/:id` | publik | Detail berita, pengunggah, penanggung jawab, posko, donasi terbaru |
+| `/bencana/:id/donasi` | publik | Form donasi: pilih PIC, nominal, anonim |
+| `/donasi/:id` | publik + token klaim | QR, hitung mundur, modal terima kasih |
 | `/unggah` | login | Unggah laporan + foto + GPS |
 | `/saya` | login | Profil, lencana, status verifikasi penyalur |
 | `/dashboard` | login | Dasbor penyalur: dokumen verifikasi, pengajuan PIC, profil |
@@ -263,8 +283,9 @@ Unggah post + GPS → AI klasifikasi & cek duplikat → event digabung atau dibu
 | Pengajuan penanggung jawab + persetujuan admin | jalan |
 | Posko: buat, survei, kebutuhan, stok dengan log | jalan |
 | Admin: antrean verifikasi, PIC, laporan konten | jalan |
-| Donasi, pencairan, bukti belanja | **belum** — Fase 5–6 |
-| Midtrans | **belum** — akan memakai adapter mock di Fase 5 |
+| Donasi QRIS (mock), ledger publik, modal terima kasih, klaim donasi tamu | jalan |
+| Pencairan bertahap, bukti belanja, konfirmasi pelapor | **belum** — Fase 6 |
+| Midtrans | **mock**: `MIDTRANS_SERVER_KEY` kosong → provider mock berlabel "Simulasi"; isi key untuk beralih ke QRIS sandbox tanpa ubah kode |
 | Antrean offline IndexedDB | **belum** — Fase 8 |
 | i18n ID/EN + pemilih bahasa & tema (tersimpan di cookie + akun) | jalan |
 
